@@ -1,4 +1,4 @@
-# Croo FAQ  (DRAFT 2, 2026-10-13)
+# Croo FAQ  (DRAFT 3, 2026-10-13)
 
 *Croo Docs · 2026-10-13*
 
@@ -10,7 +10,8 @@
 > install.md's hold: it describes the gated closed-beta journey and must not
 > publish before that build ships. Three operator calls pending: the
 > cost/beta wording (README's open call), whether the day-90 answer may name
-> the Free fallback publicly, and the telemetry answer's exact wording.
+> the Free fallback publicly, and the telemetry answer's exact wording. One
+> Sally check: the Windows/Ubuntu line (dedicated Ubuntu vs WSL2).
 
 ## The basics
 
@@ -63,6 +64,37 @@ Your term is 90 days from first activation, not from approval or install.
 [DRAFT: agreed behaviour is that an admitted, expired user falls back to the
 Free tier rather than losing access — PENDING the operator's call on saying
 that publicly before launch pricing exists.]
+
+## Where Croo should live
+
+**Which machine should I install Croo on?**
+One that stays on. Your crew works while you're away, answers on your
+phone, and keeps its memory — none of that happens on a machine that's
+asleep in a bag. The ideal is a spare Mac mini or a small Linux box in a
+corner: install once, and reach it from anywhere (see reach.md). Croo runs
+on macOS and Ubuntu.
+
+**Can I just put it on my laptop?**
+You can, and it's a fine way to try Croo. But close the lid and the crew
+stops with it — agents mid-task pause, your phone goes quiet, and they pick
+up again only when the laptop wakes. If you find yourself wanting Croo
+*there* while you're *here*, that's the moment for an always-on machine.
+Moving later is easy (see "Can I move Croo to another machine?").
+
+**Does it need to be a powerful machine?**
+No. Croo itself is light — the thinking happens on your agents' engines,
+not on the box. A modest machine that stays on beats a fast one that
+sleeps. What matters more: plenty of disk for your projects, and a reliable
+connection.
+
+**I'm on Windows.**
+Croo runs on Ubuntu, so a Windows 11 PC running Ubuntu works — Nova handles
+the install the same way. [DRAFT: Sally to confirm whether a dedicated
+Ubuntu install is required or Ubuntu under WSL2 counts.]
+
+**Anything to set on the machine itself?**
+Only that it doesn't sleep. Ask Nova at install — "make sure this machine
+stays awake" — and she'll check the energy settings with you.
 
 ## Installing and activating
 
