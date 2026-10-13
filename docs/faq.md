@@ -1,4 +1,4 @@
-# Croo FAQ  (DRAFT 3.1, 2026-10-13)
+# Croo FAQ  (DRAFT 3.2, 2026-10-13)
 
 *Croo Docs · 2026-10-13*
 
@@ -87,9 +87,9 @@ sleeps. What matters more: plenty of disk for your projects, and a reliable
 connection.
 
 **I'm on Windows.**
-Croo runs on Ubuntu, so a Windows 11 PC works either way: Ubuntu under
-WSL2, or a dedicated Ubuntu install. Nova handles the install the same
-way on both.
+Croo runs on Ubuntu, so a Windows 11 PC with a dedicated Ubuntu install
+works — Nova handles the install the same way. Ubuntu under WSL2 should
+work too, but we haven't tested it yet; ask us before relying on it.
 
 **Anything to set on the machine itself?**
 Only that it doesn't sleep. Ask Nova at install — "make sure this machine
