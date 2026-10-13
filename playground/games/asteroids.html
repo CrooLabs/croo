@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- croo-web menu label (sole registration step) -->
+<meta name="croo-game" content="Asteroids">
+<title>Asteroids</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; width: 100vw; height: 100dvh; background: #000; }
+  /* canvas backing store is sized to device pixels; CSS stretches it 1:1. */
+  #c { display: block; width: 100%; height: 100%; background: #000;
+       image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<script>
+"use strict";
+/* ============================================================================
+   CROO-GAME CONTRACT BOILERPLATE  —  copy this block verbatim into new games.
+   Everything croo-web needs lives here; the game logic below only calls into it.
+   Contract: one offline self-contained .html; fills 100vw x 100dvh, dark;
+   ESC -> window.parent.postMessage({type:'croo-game-exit'},'*'); preventDefault
+   only on the game's own keys; <meta name="croo-game">; pause on hidden/blur.
+   ========================================================================== */
+const Croo = (() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const wrap = document.getElementById('wrap');
+  const STANDALONE = (window.parent === window); // true in a plain tab
+
+  let DPR = 1, W = 1, H = 1;          // canvas device-pixel dimensions
+  const resizeCbs = [];
+  function layout() {
+    const r = wrap.getBoundingClientRect();
+    DPR = window.devicePixelRatio || 1;
+    W = Math.max(1, Math.round(r.width  * DPR));
+    H = Math.max(1, Math.round(r.height * DPR));
+    canvas.width = W; canvas.height = H;
+    ctx.imageSmoothingEnabled = false;
+    for (const cb of resizeCbs) cb(W, H);
+  }
+  window.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(wrap);
+
+  // ESC is the single integration hook. Standalone: parent===self so the
+  // message is harmless and we surface a pause affordance instead (a script
+  // can't close a tab it didn't open). Embedded: croo-web closes the overlay.
+  let onEscStandalone = () => {};
+  function fireExit() {
+    window.parent.postMessage({ type: 'croo-game-exit' }, '*');
+    if (STANDALONE) onEscStandalone();
+  }
+
+  // Own the keyboard, but ONLY the game's keys — never Tab or browser
+  // shortcuts (Cmd/Ctrl/Alt), so the operator can always switch away. Keys are
+  // normalized to lowercase so the game reads one consistent form (arrows
+  // included), e.g. keys['arrowleft'], 'escape', 'enter', ' '.
+  const owned = new Set(['arrowup','arrowdown','arrowleft','arrowright',
+                         'w','s','a','d',' ','m','2','escape','enter']);
+  const keyCbs = { down: [], up: [] };
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;      // let shortcuts pass
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    e.preventDefault();
+    if (k === 'escape') { fireExit(); return; }
+    for (const cb of keyCbs.down) cb(k, e);
+  }, { passive: false });
+  window.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    for (const cb of keyCbs.up) cb(k, e);
+  });
+
+  // Keyboard needs a focused frame; grab focus on load and on any pointer down.
+  window.addEventListener('load', () => { try { window.focus(); } catch (_) {} });
+  wrap.addEventListener('pointerdown', () => { try { window.focus(); } catch (_) {} });
+
+  // Pause hooks. System pause = hidden tab or lost focus (saves CPU; the loop
+  // owner decides what to do). We expose state; the game halts its update.
+  let systemPaused = false;
+  const pauseCbs = [];
+  function setSystemPaused(v) {
+    if (systemPaused === v) return;
+    systemPaused = v;
+    for (const cb of pauseCbs) cb(systemPaused);
+  }
+  document.addEventListener('visibilitychange', () => setSystemPaused(document.hidden));
+  window.addEventListener('blur',  () => setSystemPaused(true));
+  window.addEventListener('focus', () => setSystemPaused(document.hidden));
+
+  // Lazy Web Audio: AudioContext is autoplay-suspended until a gesture, so we
+  // build/resume it on first key. Square-wave blips, no audio assets.
+  let actx = null;
+  function ensureAudio() {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+    } catch (_) { actx = null; }
+  }
+  function blip(freq, durMs, vol) {
+    if (!actx) return;
+    try {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'square'; o.frequency.value = freq;
+      o.connect(g); g.connect(actx.destination);
+      const t = actx.currentTime, v = vol == null ? 0.05 : vol;
+      g.gain.setValueAtTime(v, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + durMs / 1000);
+      o.start(t); o.stop(t + durMs / 1000 + 0.02);
+    } catch (_) {}
+  }
+
+  return {
+    ctx, STANDALONE,
+    get W() { return W; }, get H() { return H; }, get DPR() { return DPR; },
+    get systemPaused() { return systemPaused; },
+    onResize(cb) { resizeCbs.push(cb); },
+    onKeyDown(cb) { keyCbs.down.push(cb); },
+    onKeyUp(cb) { keyCbs.up.push(cb); },
+    onSystemPause(cb) { pauseCbs.push(cb); },
+    setEscStandalone(cb) { onEscStandalone = cb; },
+    layout, ensureAudio, blip,
+  };
+})();
+/* ===================== END CROO-GAME CONTRACT BOILERPLATE ==================== */
+
+
+/* ============================== GAME: ASTEROIDS ============================
+   Atari vector style: drift through a wrap-around field, rotate + thrust with
+   conserved momentum, and shoot rocks that split big -> medium -> small. A
+   saucer wanders in now and then. Clear the field to advance a wave.
+   ========================================================================== */
+const ctx = Croo.ctx;
+
+// Fixed virtual world. Height is constant; width tracks the canvas aspect so a
+// uniform scale fills the screen with no distortion. The field wraps on BOTH
+// axes (unlike the lander), so entities crossing an edge reappear opposite.
+const VH = 100;
+let VW = 0, scale = 1;   // scale = device px per virtual unit (= H / VH)
+
+// physics (virtual units, seconds)
+const ROT       = 3.4;   // ship turn rate (rad/sec)
+const THRUST    = 92;    // accel along the nose while thrusting
+const DRAG      = 0.32;  // gentle velocity decay/sec (arcade-ish, not frictionless)
+const MAXSPD    = 72;    // ship speed cap
+const BSPD      = 96;    // bullet speed
+const BLIFE     = 0.85;  // bullet lifetime (sec)
+const FIRE_CD   = 0.17;  // min seconds between shots
+const MAXBULLET = 4;     // classic 4-on-screen limit
+const INVULN    = 2.4;   // respawn invulnerability (sec)
+const SHIP_R    = 2.6;   // collision radius
+
+const RSIZE = { 3: 8.6, 2: 4.9, 1: 2.7 };           // rock radius by size tier
+const RSCORE = { 3: 20, 2: 50, 1: 100 };            // points by tier
+const SAUCER_R = 3.4, SAUCER_SCORE = 200;
+
+const ship = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, thrust: false, alive: false, invuln: 0 };
+let rocks = [];          // {x,y,vx,vy,size,r,spin,ang,verts[]}
+let bullets = [];        // {x,y,vx,vy,life}
+let saucer = null;       // {x,y,vx,vy,fireT,dir} or null
+let sbullets = [];       // saucer shots {x,y,vx,vy,life}
+let parts = [];          // explosion debris {x,y,vx,vy,life}
+let stars = [];          // decorative background dots
+
+let state = 'start';     // start | play | over
+let score = 0, lives = 3, wave = 1;
+let muted = true, userPaused = false, muteFlash = 0;
+let fireCd = 0, respawnT = 0, saucerT = 0, thrustSndT = 0;
+const keys = Object.create(null);
+
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function rand(a, b) { return a + Math.random() * (b - a); }
+function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+function wrapPos(o) {
+  if (o.x < 0) o.x += VW; else if (o.x > VW) o.x -= VW;
+  if (o.y < 0) o.y += VH; else if (o.y > VH) o.y -= VH;
+}
+
+Croo.onResize((w, h) => {
+  const newScale = h / VH;
+  const newVW = w / newScale;
+  if (VW > 0 && newVW > 0) {                 // keep relative x positions on resize
+    const r = newVW / VW;
+    const all = rocks.concat(bullets, sbullets, parts, stars);
+    for (const o of all) o.x *= r;
+    ship.x *= r;
+    if (saucer) saucer.x *= r;
+  }
+  VW = newVW; scale = newScale;
+  if (stars.length === 0) genStars();
+  if (state === 'start' && rocks.length === 0) spawnWave(5);   // attract-screen drift
+});
+
+Croo.onSystemPause(() => {});                 // loop reads Croo.systemPaused
+Croo.setEscStandalone(() => { userPaused = !userPaused; });
+
+Croo.onKeyDown((k) => {
+  Croo.ensureAudio();                         // first gesture wires audio
+  if (k === 'm') { muted = !muted; muteFlash = 1.2; return; }
+  if ((k === ' ' || k === 'enter') && state !== 'play') { newGame(); return; }
+  if ((k === 'arrowdown' || k === 's') && state === 'play' && ship.alive) hyperspace();
+  keys[k] = true;
+});
+Croo.onKeyUp((k) => { keys[k] = false; });
+
+function genStars() {
+  stars = [];
+  for (let i = 0; i < 60; i++) stars.push({ x: rand(0, VW), y: rand(0, VH) });
+}
+
+function makeRock(x, y, size) {
+  const r = RSIZE[size];
+  const n = randInt(9, 12);
+  const verts = [];
+  for (let i = 0; i < n; i++) verts.push(rand(0.72, 1.18));   // per-vertex radius factor
+  const sp = rand(8, 16) * (1 + (3 - size) * 0.35);           // smaller = faster
+  const a = rand(0, Math.PI * 2);
+  return { x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+           size, r, spin: rand(-1.6, 1.6), ang: 0, verts };
+}
+
+function spawnWave(n) {
+  for (let i = 0; i < n; i++) {
+    let x, y, tries = 0;
+    do { x = rand(0, VW); y = rand(0, VH); tries++; }
+    while (tries < 30 && Math.hypot(x - VW / 2, y - VH / 2) < VH * 0.28);  // not on the ship
+    rocks.push(makeRock(x, y, 3));
+  }
+}
+
+function spawnShip() {
+  ship.x = VW / 2; ship.y = VH / 2;
+  ship.vx = 0; ship.vy = 0; ship.angle = 0;
+  ship.thrust = false; ship.alive = true; ship.invuln = INVULN;
+}
+
+function newGame() {
+  score = 0; lives = 3; wave = 1;
+  rocks = []; bullets = []; sbullets = []; parts = []; saucer = null;
+  saucerT = rand(9, 16); respawnT = 0; fireCd = 0;
+  spawnWave(4);
+  spawnShip();
+  state = 'play';
+}
+
+function nextWave() {
+  wave++;
+  spawnWave(Math.min(3 + wave, 10));
+  saucerT = Math.min(saucerT, rand(6, 12));
+}
+
+function hyperspace() {
+  ship.x = rand(VW * 0.1, VW * 0.9);
+  ship.y = rand(VH * 0.1, VH * 0.9);
+  ship.vx = 0; ship.vy = 0; ship.invuln = Math.max(ship.invuln, 0.5);
+  Croo.blip(220, 60, muted ? 0 : 0.04);
+}
+
+function fire() {
+  const nx = Math.sin(ship.angle), ny = -Math.cos(ship.angle);
+  bullets.push({ x: ship.x + nx * SHIP_R, y: ship.y + ny * SHIP_R,
+                 vx: nx * BSPD, vy: ny * BSPD, life: BLIFE });
+  fireCd = FIRE_CD;
+  Croo.blip(880, 45, muted ? 0 : 0.04);
+}
+
+function explodeAt(x, y, n, spread) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = rand(10, spread);
+    parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.5, 1) });
+  }
+}
+
+function destroyRock(i) {
+  const rk = rocks[i];
+  score += RSCORE[rk.size];
+  rocks.splice(i, 1);
+  Croo.blip(rk.size === 3 ? 70 : rk.size === 2 ? 110 : 160, 140, muted ? 0 : 0.05);
+  explodeAt(rk.x, rk.y, rk.size === 3 ? 12 : rk.size === 2 ? 9 : 6, 30 + (3 - rk.size) * 14);
+  if (rk.size > 1) {
+    for (let k = 0; k < 2; k++) rocks.push(makeRock(rk.x, rk.y, rk.size - 1));
+  }
+  if (rocks.length === 0) nextWave();
+}
+
+function killShip() {
+  ship.alive = false;
+  explodeAt(ship.x, ship.y, 16, 46);
+  Croo.blip(60, 360, muted ? 0 : 0.06);
+  lives--;
+  if (lives <= 0) { state = 'over'; }
+  else respawnT = 1.6;
+}
+
+function centerClear() {                       // safe to respawn at center?
+  for (const rk of rocks) if (Math.hypot(rk.x - VW / 2, rk.y - VH / 2) < rk.r + VH * 0.18) return false;
+  if (saucer && Math.hypot(saucer.x - VW / 2, saucer.y - VH / 2) < VH * 0.2) return false;
+  return true;
+}
+
+function spawnSaucer() {
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  saucer = { x: dir > 0 ? -SAUCER_R : VW + SAUCER_R, y: rand(VH * 0.15, VH * 0.85),
+             vx: dir * rand(16, 22), vy: 0, fireT: rand(0.8, 1.6), dir };
+}
+
+function update(dt) {
+  if (muteFlash > 0) muteFlash = Math.max(0, muteFlash - dt);
+
+  // --- rocks ---
+  for (const rk of rocks) { rk.x += rk.vx * dt; rk.y += rk.vy * dt; rk.ang += rk.spin * dt; wrapPos(rk); }
+
+  // --- bullets ---
+  for (const b of bullets) { b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; wrapPos(b); }
+  bullets = bullets.filter((b) => b.life > 0);
+
+  // --- saucer ---
+  if (state === 'play') {
+    saucerT -= dt;
+    if (!saucer && saucerT <= 0) spawnSaucer();
+  }
+  if (saucer) {
+    saucer.x += saucer.vx * dt;
+    saucer.y += Math.cos(saucer.x * 0.2) * 7 * dt;   // gentle vertical wander
+    if ((saucer.dir > 0 && saucer.x > VW + SAUCER_R) || (saucer.dir < 0 && saucer.x < -SAUCER_R)) {
+      saucer = null; saucerT = rand(11, 20);
+    } else {
+      saucer.fireT -= dt;
+      if (saucer.fireT <= 0 && ship.alive && state === 'play') {
+        const a = Math.atan2(ship.y - saucer.y, ship.x - saucer.x) + rand(-0.22, 0.22);
+        sbullets.push({ x: saucer.x, y: saucer.y, vx: Math.cos(a) * BSPD * 0.8, vy: Math.sin(a) * BSPD * 0.8, life: 1.4 });
+        saucer.fireT = rand(0.9, 1.7);
+        Croo.blip(330, 70, muted ? 0 : 0.04);
+      }
+    }
+  }
+  for (const b of sbullets) { b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; wrapPos(b); }
+  sbullets = sbullets.filter((b) => b.life > 0);
+
+  // --- debris ---
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+  parts = parts.filter((p) => p.life > 0);
+
+  // --- ship control + integration ---
+  if (state === 'play' && ship.alive) {
+    if (keys['arrowleft']  || keys['a']) ship.angle -= ROT * dt;
+    if (keys['arrowright'] || keys['d']) ship.angle += ROT * dt;
+
+    ship.thrust = (keys['arrowup'] || keys['w']);
+    if (ship.thrust) {
+      ship.vx += Math.sin(ship.angle) * THRUST * dt;
+      ship.vy += -Math.cos(ship.angle) * THRUST * dt;
+      thrustSndT -= dt;
+      if (thrustSndT <= 0) { Croo.blip(55 + Math.random() * 20, 70, muted ? 0 : 0.04); thrustSndT = 0.09; }
+    }
+    ship.vx -= ship.vx * DRAG * dt;
+    ship.vy -= ship.vy * DRAG * dt;
+    const sp = Math.hypot(ship.vx, ship.vy);
+    if (sp > MAXSPD) { ship.vx *= MAXSPD / sp; ship.vy *= MAXSPD / sp; }
+    ship.x += ship.vx * dt; ship.y += ship.vy * dt;
+    wrapPos(ship);
+    if (ship.invuln > 0) ship.invuln -= dt;
+
+    fireCd -= dt;
+    if (keys[' '] && fireCd <= 0 && bullets.length < MAXBULLET) fire();
+  } else if (state === 'play' && respawnT > 0) {
+    respawnT -= dt;
+    if (respawnT <= 0 && centerClear()) spawnShip();
+    else if (respawnT <= 0) respawnT = 0.3;     // wait for center to clear
+  }
+
+  // --- collisions: player bullets vs rocks / saucer ---
+  for (let bi = bullets.length - 1; bi >= 0; bi--) {
+    const b = bullets[bi];
+    let hit = false;
+    for (let ri = rocks.length - 1; ri >= 0; ri--) {
+      if (Math.hypot(b.x - rocks[ri].x, b.y - rocks[ri].y) < rocks[ri].r) { destroyRock(ri); hit = true; break; }
+    }
+    if (!hit && saucer && Math.hypot(b.x - saucer.x, b.y - saucer.y) < SAUCER_R) {
+      score += SAUCER_SCORE; explodeAt(saucer.x, saucer.y, 14, 40);
+      Croo.blip(90, 300, muted ? 0 : 0.06); saucer = null; saucerT = rand(12, 20); hit = true;
+    }
+    if (hit) bullets.splice(bi, 1);
+  }
+
+  // --- collisions: ship vs rocks / saucer / saucer bullets ---
+  if (state === 'play' && ship.alive && ship.invuln <= 0) {
+    let dead = false;
+    for (let ri = rocks.length - 1; ri >= 0; ri--) {
+      if (Math.hypot(ship.x - rocks[ri].x, ship.y - rocks[ri].y) < rocks[ri].r + SHIP_R) { destroyRock(ri); dead = true; break; }
+    }
+    if (!dead && saucer && Math.hypot(ship.x - saucer.x, ship.y - saucer.y) < SAUCER_R + SHIP_R) {
+      explodeAt(saucer.x, saucer.y, 12, 38); saucer = null; saucerT = rand(12, 20); dead = true;
+    }
+    if (!dead) {
+      for (let si = sbullets.length - 1; si >= 0; si--) {
+        if (Math.hypot(ship.x - sbullets[si].x, ship.y - sbullets[si].y) < SHIP_R) { sbullets.splice(si, 1); dead = true; break; }
+      }
+    }
+    if (dead) killShip();
+  }
+}
+
+// ------------------------------- drawing ----------------------------------
+function center(lines, cy, size, alpha, color) {
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.fillStyle = color || '#fff';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = size + 'px monospace';
+  const lh = size * 1.5, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, Croo.W / 2, y0 + i * lh));
+  ctx.restore();
+}
+
+function drawShipShape(s, lw) {
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = lw;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -3.6 * s);
+  ctx.lineTo(2.6 * s, 3.0 * s);
+  ctx.lineTo(1.5 * s, 1.7 * s);
+  ctx.lineTo(-1.5 * s, 1.7 * s);
+  ctx.lineTo(-2.6 * s, 3.0 * s);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawShip() {
+  if (!ship.alive) return;
+  if (ship.invuln > 0 && Math.floor(ship.invuln * 12) % 2 === 0) return;   // blink while invulnerable
+  const s = scale;
+  ctx.save();
+  ctx.translate(ship.x * s, ship.y * s);
+  ctx.rotate(ship.angle);
+  drawShipShape(s, Math.max(1.2, s * 0.16));
+  if (ship.thrust && Math.random() < 0.7) {                 // flickering exhaust
+    const fl = (2.4 + Math.random() * 2.4) * s;
+    ctx.strokeStyle = '#ff3df5';
+    ctx.beginPath();
+    ctx.moveTo(-1.1 * s, 1.7 * s); ctx.lineTo(0, 1.7 * s + fl); ctx.lineTo(1.1 * s, 1.7 * s);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawRocks() {
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1, scale * 0.14);
+  ctx.lineJoin = 'round';
+  for (const rk of rocks) {
+    ctx.save();
+    ctx.translate(rk.x * scale, rk.y * scale);
+    ctx.rotate(rk.ang);
+    ctx.beginPath();
+    const n = rk.verts.length;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const rr = rk.r * rk.verts[i] * scale;
+      const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawSaucer() {
+  if (!saucer) return;
+  const s = scale, r = SAUCER_R;
+  ctx.save();
+  ctx.translate(saucer.x * s, saucer.y * s);
+  ctx.strokeStyle = '#9df';
+  ctx.lineWidth = Math.max(1.2, s * 0.15);
+  ctx.lineJoin = 'round';
+  ctx.beginPath();                              // hex body
+  ctx.moveTo(-r * s, 0);
+  ctx.lineTo(-r * 0.5 * s, -r * 0.45 * s);
+  ctx.lineTo(r * 0.5 * s, -r * 0.45 * s);
+  ctx.lineTo(r * s, 0);
+  ctx.lineTo(r * 0.5 * s, r * 0.45 * s);
+  ctx.lineTo(-r * 0.5 * s, r * 0.45 * s);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath();                              // dome
+  ctx.moveTo(-r * 0.5 * s, -r * 0.45 * s);
+  ctx.lineTo(-r * 0.25 * s, -r * 0.85 * s);
+  ctx.lineTo(r * 0.25 * s, -r * 0.85 * s);
+  ctx.lineTo(r * 0.5 * s, -r * 0.45 * s);
+  ctx.stroke();
+  ctx.beginPath();                              // waist line
+  ctx.moveTo(-r * s, 0); ctx.lineTo(r * s, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDots(arr, color, sz) {
+  ctx.fillStyle = color;
+  const d = Math.max(1, scale * sz);
+  for (const b of arr) ctx.fillRect(b.x * scale - d / 2, b.y * scale - d / 2, d, d);
+}
+
+function drawParts() {
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1, scale * 0.13);
+  for (const p of parts) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+    const x = p.x * scale, y = p.y * scale;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - p.vx * scale * 0.05, y - p.vy * scale * 0.05);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+  const H = Croo.H;
+  const size = Math.max(12, Math.round(H * 0.04));
+  ctx.save();
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.font = size + 'px monospace';
+  ctx.fillText(String(score).padStart(5, '0'), size * 0.6, size * 0.5);
+  // lives as small ship glyphs
+  const gs = size * 0.16;
+  for (let i = 0; i < lives; i++) {
+    ctx.save();
+    ctx.translate(size * 0.9 + i * size * 1.05, size * 2.0);
+    drawShipShape(gs, Math.max(1, scale * 0.12));
+    ctx.restore();
+  }
+  ctx.textAlign = 'right';
+  ctx.fillText('WAVE ' + wave, Croo.W - size * 0.6, size * 0.5);
+  ctx.restore();
+}
+
+function drawOverlays() {
+  const H = Croo.H;
+  const big = Math.max(20, H * 0.07), small = Math.max(11, H * 0.026);
+  if (muteFlash > 0) center(['SOUND ' + (muted ? 'OFF' : 'ON')], H * 0.12, small, Math.min(1, muteFlash));
+
+  if (state === 'start') {
+    center(['ASTEROIDS'], H * 0.27, big);
+    center([
+      '←/→  or  A/D   rotate',
+      '↑  or  W   thrust',
+      'SPACE   fire',
+      '↓  or  S   hyperspace',
+      'M sound   ·   ESC exit',
+      '',
+      'press SPACE to start',
+    ], H * 0.5, small, 0.9);
+  } else if (state === 'over') {
+    center(['GAME OVER'], H * 0.36, big, 1, '#ff5a5a');
+    center(['score  ' + String(score).padStart(5, '0')], H * 0.48, small * 1.3, 0.95);
+    center(['press SPACE to play again'], H * 0.56, small, 0.9);
+  }
+
+  if (userPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['PAUSED', 'in croo-web, ESC closes the game', 'press ESC to resume'],
+      Croo.H / 2, Math.max(14, Croo.H * 0.034));
+  } else if (Croo.systemPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['paused'], Croo.H / 2, Math.max(14, Croo.H * 0.034), 0.8);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, Croo.W, Croo.H);
+  ctx.fillStyle = '#555';
+  const d = Math.max(1, scale * 0.1);
+  for (const st of stars) ctx.fillRect(st.x * scale, st.y * scale, d, d);
+
+  drawRocks();
+  drawSaucer();
+  drawDots(bullets, '#fff', 0.7);
+  drawDots(sbullets, '#ff5a5a', 0.8);
+  drawShip();
+  if (parts.length) drawParts();
+  if (state !== 'start') drawHUD();
+  drawOverlays();
+}
+
+// ------------------------------- main loop --------------------------------
+let last = 0;
+function frame(now) {
+  const dt = Math.min(0.033, last ? (now - last) / 1000 : 0);
+  last = now;
+  if (!(userPaused || Croo.systemPaused)) update(dt);
+  else last = now;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+Croo.layout();          // sets VW/scale and (state==='start') seeds the field
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

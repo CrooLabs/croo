@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- croo-web menu label (sole registration step) -->
+<meta name="croo-game" content="Breakout">
+<title>Breakout</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; width: 100vw; height: 100dvh; background: #000; }
+  /* canvas backing store is sized to device pixels; CSS stretches it 1:1. */
+  #c { display: block; width: 100%; height: 100%; background: #000;
+       image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<script>
+"use strict";
+/* ============================================================================
+   CROO-GAME CONTRACT BOILERPLATE  —  copy this block verbatim into new games.
+   Everything croo-web needs lives here; the game logic below only calls into it.
+   Contract: one offline self-contained .html; fills 100vw x 100dvh, dark;
+   ESC -> window.parent.postMessage({type:'croo-game-exit'},'*'); preventDefault
+   only on the game's own keys; <meta name="croo-game">; pause on hidden/blur.
+   ========================================================================== */
+const Croo = (() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const wrap = document.getElementById('wrap');
+  const STANDALONE = (window.parent === window); // true in a plain tab
+
+  let DPR = 1, W = 1, H = 1;          // canvas device-pixel dimensions
+  const resizeCbs = [];
+  function layout() {
+    const r = wrap.getBoundingClientRect();
+    DPR = window.devicePixelRatio || 1;
+    W = Math.max(1, Math.round(r.width  * DPR));
+    H = Math.max(1, Math.round(r.height * DPR));
+    canvas.width = W; canvas.height = H;
+    ctx.imageSmoothingEnabled = false;
+    for (const cb of resizeCbs) cb(W, H);
+  }
+  window.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(wrap);
+
+  // ESC is the single integration hook. Standalone: parent===self so the
+  // message is harmless and we surface a pause affordance instead (a script
+  // can't close a tab it didn't open). Embedded: croo-web closes the overlay.
+  let onEscStandalone = () => {};
+  function fireExit() {
+    window.parent.postMessage({ type: 'croo-game-exit' }, '*');
+    if (STANDALONE) onEscStandalone();
+  }
+
+  // Own the keyboard, but ONLY the game's keys — never Tab or browser
+  // shortcuts (Cmd/Ctrl/Alt), so the operator can always switch away. Keys are
+  // normalized to lowercase so the game reads one consistent form (arrows
+  // included), e.g. keys['arrowleft'], 'escape', 'enter', ' '.
+  const owned = new Set(['arrowup','arrowdown','arrowleft','arrowright',
+                         'w','s','a','d','c',' ','m','2','z','x','[',']','escape','enter']);
+  const keyCbs = { down: [], up: [] };
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;      // let shortcuts pass
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    e.preventDefault();
+    if (k === 'escape') { fireExit(); return; }
+    for (const cb of keyCbs.down) cb(k, e);
+  }, { passive: false });
+  window.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    for (const cb of keyCbs.up) cb(k, e);
+  });
+
+  // Keyboard needs a focused frame; grab focus on load and on any pointer down.
+  window.addEventListener('load', () => { try { window.focus(); } catch (_) {} });
+  wrap.addEventListener('pointerdown', () => { try { window.focus(); } catch (_) {} });
+
+  // Pause hooks. System pause = hidden tab or lost focus (saves CPU; the loop
+  // owner decides what to do). We expose state; the game halts its update.
+  let systemPaused = false;
+  const pauseCbs = [];
+  function setSystemPaused(v) {
+    if (systemPaused === v) return;
+    systemPaused = v;
+    for (const cb of pauseCbs) cb(systemPaused);
+  }
+  document.addEventListener('visibilitychange', () => setSystemPaused(document.hidden));
+  window.addEventListener('blur',  () => setSystemPaused(true));
+  window.addEventListener('focus', () => setSystemPaused(document.hidden));
+
+  // Lazy Web Audio: AudioContext is autoplay-suspended until a gesture, so we
+  // build/resume it on first key. Square-wave blips, no audio assets.
+  let actx = null;
+  function ensureAudio() {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+    } catch (_) { actx = null; }
+  }
+  function blip(freq, durMs, vol) {
+    if (!actx) return;
+    try {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'square'; o.frequency.value = freq;
+      o.connect(g); g.connect(actx.destination);
+      const t = actx.currentTime, v = vol == null ? 0.05 : vol;
+      g.gain.setValueAtTime(v, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + durMs / 1000);
+      o.start(t); o.stop(t + durMs / 1000 + 0.02);
+    } catch (_) {}
+  }
+
+  return {
+    ctx, STANDALONE,
+    get W() { return W; }, get H() { return H; }, get DPR() { return DPR; },
+    get systemPaused() { return systemPaused; },
+    onResize(cb) { resizeCbs.push(cb); },
+    onKeyDown(cb) { keyCbs.down.push(cb); },
+    onKeyUp(cb) { keyCbs.up.push(cb); },
+    onSystemPause(cb) { pauseCbs.push(cb); },
+    setEscStandalone(cb) { onEscStandalone = cb; },
+    layout, ensureAudio, blip,
+  };
+})();
+/* ===================== END CROO-GAME CONTRACT BOILERPLATE ==================== */
+
+
+/* ============================== GAME: BREAKOUT =============================
+   Blocky 2600 look (crisp via DPR canvas). Slide the paddle, launch the ball,
+   clear the wall. Deflection depends on WHERE the ball strikes the paddle; the
+   ball speeds up at hit counts 4 & 12 and on reaching the orange/red rows, and
+   the paddle halves the first time the ball reaches the top wall.
+   ========================================================================== */
+const ctx = Croo.ctx;
+const cvs = document.getElementById('c');
+
+// Fixed virtual world: height constant, width tracks aspect, uniform scale.
+const VH = 100;
+let VW = 0, scale = 1;   // scale = device px per virtual unit (= H / VH)
+
+const PADDLE_H = 2.4;
+const BALL_R   = 1.1;
+const BSPD0    = 58;     // launch speed
+const BSPDMAX  = 116;    // speed cap
+const TOP      = 16;     // top of brick field (HUD lives above)
+const ROWS     = 8;
+const BRICK_H  = 3.2;
+const MAXANG   = 1.05;   // max paddle deflection from vertical (rad)
+const MINVYF   = 0.30;   // floor on |vy| as a fraction of speed (anti-stall)
+const SPIN     = 0.18;   // english: a paddle sliding at contact curves the ball
+const CURVE_RATE  = 1.7; // hold C + sweep the paddle at contact => the RETURN PATH bananas; scaled by curveMul (the [ ] knob)
+const CURVE_DECAY = 0.5; // gentle fade (~50%/s) so the curve is a sustained ARC over the flight, not a kink off the paddle
+
+const paddle = { x: 0, vx: 0, lastX: 0 };
+const ball = { x: 0, y: 0, vx: 0, vy: 0, curve: 0 };
+let alive = [];          // alive[r][c] booleans
+let cols = 10, bricksLeft = 0;
+let padW = 14, ballSpd = BSPD0;
+let hits = 0, hitOrange = false, hitRed = false, topHit = false;
+
+let state = 'start';     // start | serve | play | over
+let score = 0, lives = 3, level = 1;
+let muted = true, userPaused = false, muteFlash = 0, levelFlash = 0;
+let padSpeedMul = 1, padSpeedFlash = 0;   // keyboard paddle-speed knob (Z slower / X faster), persists across games
+let ballSpeedMul = 1, ballSpeedFlash = 0; // launch-speed knob (↓ slower / ↑ faster); set at startup, applies next game
+let curveFlash = 0;                        // brief "SLICE" cue when a curved return is struck
+let curveMul = 1, curveSetFlash = 0;       // curve-strength knob ([ weaker / ] stronger), persists across games
+const keys = Object.create(null);
+let inputMode = 'mouse';   // 'mouse' | 'key' — whichever the operator last used wins
+let modeAnchorX = null;    // cursor X captured when keys took over (to detect a deliberate re-grab)
+const SWITCH_PX = 6;       // CSS px the mouse must move to reclaim control from the keyboard
+
+const PADDLE_Y = VH - 6;
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function rand(a, b) { return a + Math.random() * (b - a); }
+function basePadW() { return clamp(VW * 0.13, 9, 20); }
+function brickW() { return VW / cols; }
+
+function rowColor(r) {
+  return r < 2 ? '#ff5a5a' : r < 4 ? '#ff9f3d' : r < 6 ? '#5dff5d' : '#ffe23d';
+}
+function rowPts(r) { return r < 2 ? 7 : r < 4 ? 5 : r < 6 ? 3 : 1; }
+
+Croo.onResize((w, h) => {
+  const newScale = h / VH;
+  const newVW = w / newScale;
+  if (VW > 0 && newVW > 0) {                 // keep relative x positions on resize
+    const r = newVW / VW;
+    paddle.x *= r; ball.x *= r; padW *= r;
+  }
+  VW = newVW; scale = newScale;
+  if (paddle.x === 0) paddle.x = VW / 2;
+  if (alive.length === 0) { buildBricks(); padW = basePadW(); }   // attract wall
+});
+
+Croo.onSystemPause(() => {});                 // loop reads Croo.systemPaused
+Croo.setEscStandalone(() => { userPaused = !userPaused; });
+
+Croo.onKeyDown((k) => {
+  Croo.ensureAudio();                         // first gesture wires audio
+  if (k === 'm') { muted = !muted; muteFlash = 1.2; return; }
+  if (k === 'z' || k === 'x') {               // adjust keyboard paddle speed
+    padSpeedMul = clamp(Math.round((padSpeedMul + (k === 'x' ? 0.2 : -0.2)) * 10) / 10, 0.2, 2.6);
+    padSpeedFlash = 1.2; ballSpeedFlash = 0;
+    Croo.blip(260 + padSpeedMul * 130, 50, muted ? 0 : 0.04);
+    return;
+  }
+  if (k === 'arrowup' || k === 'arrowdown') { // launch-speed multiplier (takes effect on the next game)
+    ballSpeedMul = clamp(Math.round((ballSpeedMul + (k === 'arrowup' ? 0.2 : -0.2)) * 10) / 10, 0.4, 2.4);
+    ballSpeedFlash = 1.2; padSpeedFlash = 0; muteFlash = 0;
+    Croo.blip(300 + ballSpeedMul * 130, 50, muted ? 0 : 0.04);
+    return;
+  }
+  if (k === '[' || k === ']') {               // curve-strength knob (hold C + sweep to use it)
+    curveMul = clamp(Math.round((curveMul + (k === ']' ? 0.25 : -0.25)) * 100) / 100, 0, 3);
+    curveSetFlash = 1.2; ballSpeedFlash = 0; padSpeedFlash = 0; muteFlash = 0;
+    Croo.blip(360 + curveMul * 120, 50, muted ? 0 : 0.04);
+    return;
+  }
+  if (k === ' ' || k === 'enter') {
+    if (state === 'start' || state === 'over') newGame();
+    else if (state === 'serve') launchBall();
+    return;
+  }
+  if (k === 'arrowleft' || k === 'arrowright' || k === 'a' || k === 'd') {
+    if (inputMode !== 'key') { inputMode = 'key'; modeAnchorX = null; }   // steering by keys now
+  }
+  keys[k] = true;
+});
+Croo.onKeyUp((k) => { keys[k] = false; });
+
+cvs.addEventListener('pointermove', (e) => {
+  if (userPaused || Croo.systemPaused) return;
+  const r = cvs.getBoundingClientRect();
+  if (r.width <= 0) return;
+  if (inputMode === 'key') {                          // steering by keys: a parked cursor can't steal the paddle
+    if (modeAnchorX === null) modeAnchorX = e.clientX;
+    if (Math.abs(e.clientX - modeAnchorX) < SWITCH_PX) return;   // ignore jitter
+    inputMode = 'mouse';                              // a deliberate move reclaims mouse control
+  }
+  paddle.x = clamp(((e.clientX - r.left) / r.width) * VW, padW / 2, VW - padW / 2);
+});
+cvs.addEventListener('pointerdown', () => {
+  Croo.ensureAudio();
+  if (state === 'start' || state === 'over') newGame();
+  else if (state === 'serve') launchBall();
+});
+
+function buildBricks() {
+  cols = clamp(Math.round(VW / 12), 8, 16);
+  alive = [];
+  for (let r = 0; r < ROWS; r++) { alive.push([]); for (let c = 0; c < cols; c++) alive[r].push(true); }
+  bricksLeft = ROWS * cols;
+}
+
+function serveBall() {
+  state = 'serve';
+  ball.x = paddle.x;
+  ball.y = PADDLE_Y - PADDLE_H / 2 - BALL_R - 0.2;
+  ball.vx = 0; ball.vy = 0; ball.curve = 0;
+}
+
+function launchBall() {
+  const a = rand(-0.35, 0.35);
+  ball.vx = ballSpd * Math.sin(a);
+  ball.vy = -ballSpd * Math.cos(a);
+  state = 'play';
+  Croo.blip(660, 50, muted ? 0 : 0.04);
+}
+
+function newGame() {
+  score = 0; lives = 3; level = 1;
+  ballSpd = BSPD0 * ballSpeedMul; hits = 0; hitOrange = false; hitRed = false; topHit = false;
+  padW = basePadW();
+  buildBricks();
+  paddle.x = VW / 2; paddle.lastX = VW / 2; paddle.vx = 0;
+  serveBall();
+}
+
+function nextLevel() {
+  level++; levelFlash = 1.6;
+  buildBricks();
+  serveBall();
+}
+
+function loseLife() {
+  lives--;
+  Croo.blip(90, 300, muted ? 0 : 0.06);
+  if (lives <= 0) state = 'over'; else serveBall();
+}
+
+function bumpSpeed() {
+  const next = Math.min(ballSpd * 1.12, BSPDMAX * ballSpeedMul);
+  const f = next / ballSpd;
+  ballSpd = next; ball.vx *= f; ball.vy *= f;
+}
+
+function enforceMinVy() {
+  const s = Math.hypot(ball.vx, ball.vy);
+  if (s > 0 && Math.abs(ball.vy) < s * MINVYF) {
+    ball.vy = (ball.vy < 0 ? -1 : 1) * s * MINVYF;
+    ball.vx = (ball.vx < 0 ? -1 : 1) * Math.sqrt(Math.max(0, s * s - ball.vy * ball.vy));
+  }
+}
+
+function ballVsBricks() {
+  const bw = brickW();
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (!alive[r][c]) continue;
+      const x0 = c * bw, x1 = x0 + bw, y0 = TOP + r * BRICK_H, y1 = y0 + BRICK_H;
+      const cx = clamp(ball.x, x0, x1), cy = clamp(ball.y, y0, y1);
+      const dx = ball.x - cx, dy = ball.y - cy;
+      if (dx * dx + dy * dy > BALL_R * BALL_R) continue;
+
+      if (ball.x < x0 || ball.x > x1) ball.vx = -ball.vx; else ball.vy = -ball.vy;
+      alive[r][c] = false; bricksLeft--;
+      score += rowPts(r);
+      Croo.blip(220 + (ROWS - r) * 40, 40, muted ? 0 : 0.045);
+      if (r < 2 && !hitRed) { hitRed = true; bumpSpeed(); }
+      else if (r < 4 && !hitOrange) { hitOrange = true; bumpSpeed(); }
+      if (bricksLeft === 0) nextLevel();
+      return;                                   // one brick per frame
+    }
+  }
+}
+
+function update(dt) {
+  if (muteFlash > 0) muteFlash = Math.max(0, muteFlash - dt);
+  if (levelFlash > 0) levelFlash = Math.max(0, levelFlash - dt);
+  if (padSpeedFlash > 0) padSpeedFlash = Math.max(0, padSpeedFlash - dt);
+  if (ballSpeedFlash > 0) ballSpeedFlash = Math.max(0, ballSpeedFlash - dt);
+  if (curveFlash > 0) curveFlash = Math.max(0, curveFlash - dt);
+  if (curveSetFlash > 0) curveSetFlash = Math.max(0, curveSetFlash - dt);
+  if (state === 'start' || state === 'over') return;
+
+  // paddle (keyboard; pointer sets x directly via listener)
+  const pspd = VW * 0.95 * padSpeedMul;
+  if (keys['arrowleft']  || keys['a']) paddle.x -= pspd * dt;
+  if (keys['arrowright'] || keys['d']) paddle.x += pspd * dt;
+  paddle.x = clamp(paddle.x, padW / 2, VW - padW / 2);
+  paddle.vx = dt > 0 ? clamp((paddle.x - paddle.lastX) / dt, -VW, VW) : 0;  // for english (mouse + keyboard)
+  paddle.lastX = paddle.x;
+
+  if (state === 'serve') {
+    ball.x = paddle.x;
+    ball.y = PADDLE_Y - PADDLE_H / 2 - BALL_R - 0.2;
+    return;
+  }
+
+  if (ball.curve) {                        // banana: rotate the velocity (constant speed), easing off
+    const a = ball.curve * dt, cs = Math.cos(a), sn = Math.sin(a);
+    const nvx = ball.vx * cs - ball.vy * sn;
+    ball.vy = ball.vx * sn + ball.vy * cs;
+    ball.vx = nvx;
+    ball.curve *= Math.pow(CURVE_DECAY, dt);
+    if (Math.abs(ball.curve) < 0.05) ball.curve = 0;
+  }
+
+  ball.x += ball.vx * dt;
+  ball.y += ball.vy * dt;
+
+  // side + top walls
+  if (ball.x - BALL_R < 0) { ball.x = BALL_R; ball.vx = Math.abs(ball.vx); Croo.blip(180, 30, muted ? 0 : 0.03); }
+  else if (ball.x + BALL_R > VW) { ball.x = VW - BALL_R; ball.vx = -Math.abs(ball.vx); Croo.blip(180, 30, muted ? 0 : 0.03); }
+  if (ball.y - BALL_R < 0) {
+    ball.y = BALL_R; ball.vy = Math.abs(ball.vy); Croo.blip(180, 30, muted ? 0 : 0.03);
+    if (!topHit) { topHit = true; padW = Math.max(padW * 0.5, 5); paddle.x = clamp(paddle.x, padW / 2, VW - padW / 2); }
+  }
+
+  ballVsBricks();
+
+  // paddle bounce (only while descending)
+  if (ball.vy > 0) {
+    const padTop = PADDLE_Y - PADDLE_H / 2;
+    if (ball.y + BALL_R >= padTop && ball.y <= PADDLE_Y + PADDLE_H &&
+        Math.abs(ball.x - paddle.x) <= padW / 2 + BALL_R) {
+      const rel = clamp((ball.x - paddle.x) / (padW / 2), -1, 1);
+      const ang = rel * MAXANG;
+      ball.vx = ballSpd * Math.sin(ang);
+      ball.vy = -ballSpd * Math.abs(Math.cos(ang));
+      ball.vx += clamp(paddle.vx * SPIN, -ballSpd, ballSpd);    // english from a moving paddle
+      const tot = Math.hypot(ball.vx, ball.vy);                 // re-cap so spin curves, not accelerates
+      if (tot > 0) { ball.vx *= ballSpd / tot; ball.vy *= ballSpd / tot; }
+      ball.curve = keys['c'] ? clamp(paddle.vx / VW, -1, 1) * CURVE_RATE * curveMul : 0;  // hold C + sweep => curved return
+      if (ball.curve) { curveFlash = 0.9; Croo.blip(620, 60, muted ? 0 : 0.04); }
+      ball.y = padTop - BALL_R - 0.01;
+      hits++;
+      if (hits === 4 || hits === 12) bumpSpeed();
+      Croo.blip(440, 45, muted ? 0 : 0.045);
+    }
+  }
+
+  enforceMinVy();
+
+  if (ball.y - BALL_R > VH) loseLife();          // missed
+}
+
+// ------------------------------- drawing ----------------------------------
+function center(lines, cy, size, alpha, color) {
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.fillStyle = color || '#fff';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = size + 'px monospace';
+  const lh = size * 1.5, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, Croo.W / 2, y0 + i * lh));
+  ctx.restore();
+}
+
+function drawBricks() {
+  const bw = brickW();
+  const gx = bw * 0.06, gy = BRICK_H * 0.12;
+  for (let r = 0; r < ROWS; r++) {
+    ctx.fillStyle = rowColor(r);
+    for (let c = 0; c < cols; c++) {
+      if (!alive[r][c]) continue;
+      const x = (c * bw + gx) * scale, y = (TOP + r * BRICK_H + gy) * scale;
+      ctx.fillRect(x, y, (bw - gx * 2) * scale, (BRICK_H - gy * 2) * scale);
+    }
+  }
+}
+
+function drawPaddle() {
+  ctx.fillStyle = '#fff';
+  const w = padW * scale, h = PADDLE_H * scale;
+  ctx.fillRect((paddle.x) * scale - w / 2, PADDLE_Y * scale - h / 2, w, h);
+}
+
+function drawBall() {
+  ctx.fillStyle = '#fff';
+  const d = BALL_R * 2 * scale;
+  ctx.fillRect(ball.x * scale - d / 2, ball.y * scale - d / 2, d, d);
+}
+
+function drawHUD() {
+  const H = Croo.H;
+  const size = Math.max(12, Math.round(H * 0.04));
+  ctx.save();
+  ctx.fillStyle = '#fff';
+  ctx.font = size + 'px monospace';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.fillText(String(score).padStart(5, '0'), size * 0.6, size * 0.4);
+  ctx.textAlign = 'center';
+  ctx.fillText('BALLS ' + lives, Croo.W / 2, size * 0.4);
+  ctx.textAlign = 'right';
+  ctx.fillText('LEVEL ' + level, Croo.W - size * 0.6, size * 0.4);
+  ctx.restore();
+}
+
+function drawOverlays() {
+  const H = Croo.H;
+  const big = Math.max(20, H * 0.07), small = Math.max(11, H * 0.026);
+  if (muteFlash > 0) center(['SOUND ' + (muted ? 'OFF' : 'ON')], H * 0.12, small, Math.min(1, muteFlash));
+  if (padSpeedFlash > 0) center(['PADDLE SPEED ' + padSpeedMul.toFixed(1) + 'x'], H * 0.18, small, Math.min(1, padSpeedFlash), '#5dff5d');
+  if (ballSpeedFlash > 0) center(['BALL SPEED ' + ballSpeedMul.toFixed(1) + 'x'], H * 0.24, small, Math.min(1, ballSpeedFlash), '#5dd0ff');
+  if (curveFlash > 0) center(['SLICE'], H * 0.3, small, Math.min(1, curveFlash / 0.9), '#ff8adf');
+  if (curveSetFlash > 0) center(['CURVE ' + curveMul.toFixed(2) + 'x' + (curveMul === 0 ? '  (off)' : '')], H * 0.3, small, Math.min(1, curveSetFlash), '#ff8adf');
+  if (levelFlash > 0 && state !== 'start') center(['LEVEL ' + level], H * 0.4, big, Math.min(1, levelFlash));
+
+  if (state === 'start') {
+    center(['BREAKOUT'], H * 0.3, big);
+    center([
+      '←/→  or  A/D  or  mouse   move   ·   slide into the ball to add english',
+      'hold C + sweep the paddle at contact   ·   curve the return (slice)',
+      '[ / ]   curve strength   (now ' + curveMul.toFixed(2) + 'x)',
+      'SPACE / click   launch',
+      'Z / X   paddle slower / faster',
+      '↑ / ↓   launch speed   (now ' + ballSpeedMul.toFixed(1) + 'x)',
+      'M sound   ·   ESC exit',
+      '',
+      'press SPACE to start',
+    ], H * 0.54, small, 0.9);
+  } else if (state === 'serve' && levelFlash <= 0) {
+    center(['press SPACE / click to launch'], H * 0.62, small, 0.85);
+  } else if (state === 'over') {
+    center(['GAME OVER'], H * 0.36, big, 1, '#ff5a5a');
+    center(['score  ' + String(score).padStart(5, '0')], H * 0.48, small * 1.3, 0.95);
+    center(['press SPACE to play again'], H * 0.56, small, 0.9);
+  }
+
+  if (userPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['PAUSED', 'in croo-web, ESC closes the game', 'press ESC to resume'],
+      Croo.H / 2, Math.max(14, Croo.H * 0.034));
+  } else if (Croo.systemPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['paused'], Croo.H / 2, Math.max(14, Croo.H * 0.034), 0.8);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, Croo.W, Croo.H);
+  drawBricks();
+  if (state !== 'start') { drawPaddle(); drawBall(); drawHUD(); }
+  drawOverlays();
+}
+
+// ------------------------------- main loop --------------------------------
+let last = 0;
+function frame(now) {
+  const dt = Math.min(0.033, last ? (now - last) / 1000 : 0);
+  last = now;
+  if (!(userPaused || Croo.systemPaused)) update(dt);
+  else last = now;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+Croo.layout();          // sets VW/scale and seeds the attract wall
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

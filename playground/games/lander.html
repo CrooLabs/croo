@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- croo-web menu label (sole registration step) -->
+<meta name="croo-game" content="Lunar Lander">
+<title>Lunar Lander</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; width: 100vw; height: 100dvh; background: #000; }
+  /* canvas backing store is sized to device pixels; CSS stretches it 1:1. */
+  #c { display: block; width: 100%; height: 100%; background: #000;
+       image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<script>
+"use strict";
+/* ============================================================================
+   CROO-GAME CONTRACT BOILERPLATE  —  copy this block verbatim into new games.
+   Everything croo-web needs lives here; the game logic below only calls into it.
+   Contract: one offline self-contained .html; fills 100vw x 100dvh, dark;
+   ESC -> window.parent.postMessage({type:'croo-game-exit'},'*'); preventDefault
+   only on the game's own keys; <meta name="croo-game">; pause on hidden/blur.
+   ========================================================================== */
+const Croo = (() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const wrap = document.getElementById('wrap');
+  const STANDALONE = (window.parent === window); // true in a plain tab
+
+  let DPR = 1, W = 1, H = 1;          // canvas device-pixel dimensions
+  const resizeCbs = [];
+  function layout() {
+    const r = wrap.getBoundingClientRect();
+    DPR = window.devicePixelRatio || 1;
+    W = Math.max(1, Math.round(r.width  * DPR));
+    H = Math.max(1, Math.round(r.height * DPR));
+    canvas.width = W; canvas.height = H;
+    ctx.imageSmoothingEnabled = false;
+    for (const cb of resizeCbs) cb(W, H);
+  }
+  window.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(wrap);
+
+  // ESC is the single integration hook. Standalone: parent===self so the
+  // message is harmless and we surface a pause affordance instead (a script
+  // can't close a tab it didn't open). Embedded: croo-web closes the overlay.
+  let onEscStandalone = () => {};
+  function fireExit() {
+    window.parent.postMessage({ type: 'croo-game-exit' }, '*');
+    if (STANDALONE) onEscStandalone();
+  }
+
+  // Own the keyboard, but ONLY the game's keys — never Tab or browser
+  // shortcuts (Cmd/Ctrl/Alt), so the operator can always switch away. Keys are
+  // normalized to lowercase so the game reads one consistent form (arrows
+  // included), e.g. keys['arrowleft'], 'escape', 'enter', ' '.
+  const owned = new Set(['arrowup','arrowdown','arrowleft','arrowright',
+                         'w','s','a','d',' ','m','2','escape','enter']);
+  const keyCbs = { down: [], up: [] };
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;      // let shortcuts pass
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    e.preventDefault();
+    if (k === 'escape') { fireExit(); return; }
+    for (const cb of keyCbs.down) cb(k, e);
+  }, { passive: false });
+  window.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    for (const cb of keyCbs.up) cb(k, e);
+  });
+
+  // Keyboard needs a focused frame; grab focus on load and on any pointer down.
+  window.addEventListener('load', () => { try { window.focus(); } catch (_) {} });
+  wrap.addEventListener('pointerdown', () => { try { window.focus(); } catch (_) {} });
+
+  // Pause hooks. System pause = hidden tab or lost focus (saves CPU; the loop
+  // owner decides what to do). We expose state; the game halts its update.
+  let systemPaused = false;
+  const pauseCbs = [];
+  function setSystemPaused(v) {
+    if (systemPaused === v) return;
+    systemPaused = v;
+    for (const cb of pauseCbs) cb(systemPaused);
+  }
+  document.addEventListener('visibilitychange', () => setSystemPaused(document.hidden));
+  window.addEventListener('blur',  () => setSystemPaused(true));
+  window.addEventListener('focus', () => setSystemPaused(document.hidden));
+
+  // Lazy Web Audio: AudioContext is autoplay-suspended until a gesture, so we
+  // build/resume it on first key. Square-wave blips, no audio assets.
+  let actx = null;
+  function ensureAudio() {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+    } catch (_) { actx = null; }
+  }
+  function blip(freq, durMs, vol) {
+    if (!actx) return;
+    try {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'square'; o.frequency.value = freq;
+      o.connect(g); g.connect(actx.destination);
+      const t = actx.currentTime, v = vol == null ? 0.05 : vol;
+      g.gain.setValueAtTime(v, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + durMs / 1000);
+      o.start(t); o.stop(t + durMs / 1000 + 0.02);
+    } catch (_) {}
+  }
+
+  return {
+    ctx, STANDALONE,
+    get W() { return W; }, get H() { return H; }, get DPR() { return DPR; },
+    get systemPaused() { return systemPaused; },
+    onResize(cb) { resizeCbs.push(cb); },
+    onKeyDown(cb) { keyCbs.down.push(cb); },
+    onKeyUp(cb) { keyCbs.up.push(cb); },
+    onSystemPause(cb) { pauseCbs.push(cb); },
+    setEscStandalone(cb) { onEscStandalone = cb; },
+    layout, ensureAudio, blip,
+  };
+})();
+/* ===================== END CROO-GAME CONTRACT BOILERPLATE ==================== */
+
+
+/* ============================ GAME: LUNAR LANDER ===========================
+   Atari vector style: rotate the craft, thrust along its nose, fight gravity
+   on a limited fuel budget, and set down slow + level on the flat pad.
+   ========================================================================== */
+const ctx = Croo.ctx;
+
+// Fixed virtual world (height is constant; width tracks the canvas aspect so a
+// uniform scale fills the screen with no distortion and no letterbox bars).
+const VH = 150;
+let VW = 0, scale = 1;   // scale = device px per virtual unit (= H / VH)
+
+// physics (virtual units, seconds)
+const GRAV    = 18;      // downward accel
+const THRUST  = 42;      // accel along the nose while thrusting
+const ROT     = 2.6;     // rad/sec turn rate
+const FUEL0   = 1000;    // starting fuel (display "lbs")
+const BURN    = 160;     // fuel/sec while thrusting
+const SAFE_VY = 12;      // max safe descent speed at touchdown
+const SAFE_VX = 10;      // max safe lateral speed
+const SAFE_ANG = 0.16;   // max tilt off-vertical (rad ~9 deg)
+const LANDER_R = 3.2;    // body+gear half-height (units) for ground contact
+const LANDER_W = 9;      // total footprint width (units) for pad sizing
+
+const lander = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, fuel: FUEL0, thrust: false };
+const terrain = [];      // [{x, y}] polyline across the surface
+const stars = [];        // [{x, y}] decorative background dots
+let parts = [];          // explosion debris
+let padX0 = 0, padX1 = 0, padY = 0;
+
+let state = 'start';     // start | play | landed | crashed
+let msg = '';
+let muted = true;
+let userPaused = false;
+let muteFlash = 0;
+let thrustSndT = 0;
+const keys = Object.create(null);
+
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function rand(a, b) { return a + Math.random() * (b - a); }
+function normAngle(a) { a %= Math.PI * 2; if (a > Math.PI) a -= Math.PI * 2; if (a < -Math.PI) a += Math.PI * 2; return a; }
+
+Croo.onResize((w, h) => {
+  const newScale = h / VH;
+  const newVW = w / newScale;
+  if (VW > 0 && terrain.length) {           // keep relative x positions on resize
+    const r = newVW / VW;
+    for (const p of terrain) p.x *= r;
+    for (const s of stars) s.x *= r;
+    padX0 *= r; padX1 *= r; lander.x *= r;
+  }
+  VW = newVW; scale = newScale;
+  if (state === 'start') { genTerrain(); resetLander(); }
+});
+
+Croo.onSystemPause(() => {});                 // loop reads Croo.systemPaused
+Croo.setEscStandalone(() => { userPaused = !userPaused; });
+
+Croo.onKeyDown((k) => {
+  Croo.ensureAudio();                         // first gesture wires audio
+  if (k === 'm') { muted = !muted; muteFlash = 1.2; return; }
+  if (state !== 'play' && (k === ' ' || k === 'enter')) { newGame(); return; }
+  if (k === 'enter') return;                  // enter only starts; SPACE falls through to thrust
+  keys[k] = true;
+});
+Croo.onKeyUp((k) => { keys[k] = false; });
+
+function genTerrain() {
+  const segW = VW / 11;
+  const padW = clamp(VW * 0.16, LANDER_W * 2.6, VW * 0.36);
+  const cx = rand(padW, VW - padW);
+  padX0 = cx - padW / 2;
+  padX1 = cx + padW / 2;
+  padY  = rand(VH * 0.58, VH * 0.86);
+
+  // x samples across the width, skipping the pad interior, with explicit pad ends
+  const xs = [0];
+  for (let x = segW; x < VW; x += segW) if (x <= padX0 - 1 || x >= padX1 + 1) xs.push(x);
+  xs.push(padX0, padX1, VW);
+  xs.sort((a, b) => a - b);
+
+  terrain.length = 0;
+  let y = rand(VH * 0.45, VH * 0.8);
+  for (const x of xs) {
+    if (Math.abs(x - padX0) < 0.01 || Math.abs(x - padX1) < 0.01) {
+      y = padY;                               // flat pad (both ends equal => level)
+    } else {
+      y = clamp(y + rand(-VH * 0.13, VH * 0.13), VH * 0.4, VH * 0.93);
+    }
+    terrain.push({ x, y });
+  }
+
+  stars.length = 0;
+  for (let i = 0; i < 36; i++) stars.push({ x: rand(0, VW), y: rand(0, VH * 0.5) });
+}
+
+function resetLander() {
+  lander.x = rand(VW * 0.2, VW * 0.8);
+  lander.y = VH * 0.10;
+  lander.vx = rand(-10, 10);
+  lander.vy = 4;
+  lander.angle = 0;
+  lander.fuel = FUEL0;
+  lander.thrust = false;
+}
+
+function newGame() { genTerrain(); resetLander(); parts = []; msg = ''; state = 'play'; }
+
+function groundYAt(x) {
+  if (x <= terrain[0].x) return terrain[0].y;
+  const n = terrain.length;
+  if (x >= terrain[n - 1].x) return terrain[n - 1].y;
+  for (let i = 0; i < n - 1; i++) {
+    if (x >= terrain[i].x && x <= terrain[i + 1].x) {
+      const t = (x - terrain[i].x) / ((terrain[i + 1].x - terrain[i].x) || 1);
+      return terrain[i].y + (terrain[i + 1].y - terrain[i].y) * t;
+    }
+  }
+  return terrain[n - 1].y;
+}
+
+function explode() {
+  parts = [];
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2, s = rand(14, 60);
+    parts.push({ x: lander.x, y: lander.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 12, life: 1 });
+  }
+}
+
+function tryLand() {
+  const onPad   = lander.x >= padX0 && lander.x <= padX1;
+  const upright = Math.abs(normAngle(lander.angle)) <= SAFE_ANG;
+  const slow    = Math.abs(lander.vy) <= SAFE_VY && Math.abs(lander.vx) <= SAFE_VX;
+  lander.thrust = false;
+  if (onPad && upright && slow) {
+    state = 'landed';
+    msg = 'THE EAGLE HAS LANDED';
+    Croo.blip(523, 140, muted ? 0 : 0.05);
+  } else {
+    state = 'crashed';
+    msg = !onPad ? 'CRASHED — MISSED THE PAD'
+        : !upright ? 'CRASHED — NOT LEVEL'
+        : 'CRASHED — TOO FAST';
+    explode();
+    Croo.blip(80, 320, muted ? 0 : 0.06);
+  }
+}
+
+function update(dt) {
+  if (muteFlash > 0) muteFlash = Math.max(0, muteFlash - dt);
+
+  if (state !== 'play') {                     // let debris settle on the over-screens
+    for (const p of parts) { p.vy += GRAV * 0.6 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 0.8; }
+    return;
+  }
+
+  if (keys['arrowleft']  || keys['a']) lander.angle -= ROT * dt;
+  if (keys['arrowright'] || keys['d']) lander.angle += ROT * dt;
+
+  const wantThrust = (keys['arrowup'] || keys['w'] || keys[' ']) && lander.fuel > 0;
+  lander.thrust = wantThrust;
+  if (wantThrust) {
+    lander.vx += Math.sin(lander.angle) * THRUST * dt;
+    lander.vy += -Math.cos(lander.angle) * THRUST * dt;
+    lander.fuel = Math.max(0, lander.fuel - BURN * dt);
+    thrustSndT -= dt;
+    if (thrustSndT <= 0) { Croo.blip(70 + Math.random() * 30, 75, muted ? 0 : 0.05); thrustSndT = 0.07; }
+  }
+
+  lander.vy += GRAV * dt;
+  lander.x += lander.vx * dt;
+  lander.y += lander.vy * dt;
+
+  if (lander.x < 0) lander.x += VW;            // horizontal wrap
+  else if (lander.x > VW) lander.x -= VW;
+
+  const gy = groundYAt(lander.x);
+  if (lander.y + LANDER_R >= gy) {             // touchdown
+    lander.y = gy - LANDER_R;
+    tryLand();
+  }
+}
+
+// ------------------------------- drawing ----------------------------------
+function center(lines, cy, size, alpha, color) {
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.fillStyle = color || '#fff';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = size + 'px monospace';
+  const lh = size * 1.5, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, Croo.W / 2, y0 + i * lh));
+  ctx.restore();
+}
+
+function pad(n, w) {
+  let s = String(Math.abs(Math.round(n)));
+  while (s.length < w) s = '0' + s;
+  return (n < 0 ? '-' : '') + s;
+}
+
+function drawTerrain() {
+  ctx.fillStyle = '#888';
+  for (const s of stars) ctx.fillRect(s.x * scale, s.y * scale, Math.max(1, scale * 0.12), Math.max(1, scale * 0.12));
+
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1, scale * 0.16);
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (let i = 0; i < terrain.length; i++) {
+    const px = terrain[i].x * scale, py = terrain[i].y * scale;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // landing pad highlighted in green, with small marker posts
+  ctx.strokeStyle = '#5dff5d';
+  ctx.lineWidth = Math.max(2, scale * 0.3);
+  ctx.beginPath();
+  ctx.moveTo(padX0 * scale, padY * scale);
+  ctx.lineTo(padX1 * scale, padY * scale);
+  ctx.stroke();
+  ctx.fillStyle = '#5dff5d';
+  const fh = scale * 3.5, fw = Math.max(1, scale * 0.18);
+  ctx.fillRect(padX0 * scale - fw / 2, padY * scale - fh, fw, fh);
+  ctx.fillRect(padX1 * scale - fw / 2, padY * scale - fh, fw, fh);
+}
+
+function drawLander() {
+  const s = scale;
+  ctx.save();
+  ctx.translate(lander.x * s, lander.y * s);
+  ctx.rotate(lander.angle);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1.2, s * 0.18);
+  ctx.lineJoin = 'round';
+
+  ctx.beginPath();                              // ascent cabin
+  ctx.moveTo(-1.6 * s, -3.4 * s); ctx.lineTo(1.6 * s, -3.4 * s);
+  ctx.lineTo(1.6 * s, -1.6 * s);  ctx.lineTo(-1.6 * s, -1.6 * s);
+  ctx.closePath(); ctx.stroke();
+
+  ctx.beginPath();                              // descent stage
+  ctx.moveTo(-2.4 * s, -1.6 * s); ctx.lineTo(2.4 * s, -1.6 * s);
+  ctx.lineTo(1.8 * s, 1.0 * s);   ctx.lineTo(-1.8 * s, 1.0 * s);
+  ctx.closePath(); ctx.stroke();
+
+  ctx.beginPath();                              // legs + feet
+  ctx.moveTo(-1.8 * s, 1.0 * s); ctx.lineTo(-3.2 * s, 3.2 * s);
+  ctx.moveTo(1.8 * s, 1.0 * s);  ctx.lineTo(3.2 * s, 3.2 * s);
+  ctx.moveTo(-3.9 * s, 3.2 * s); ctx.lineTo(-2.5 * s, 3.2 * s);
+  ctx.moveTo(2.5 * s, 3.2 * s);  ctx.lineTo(3.9 * s, 3.2 * s);
+  ctx.stroke();
+
+  if (lander.thrust) {                          // flickering exhaust flame
+    const fl = (2.6 + Math.random() * 2.8) * s;
+    ctx.strokeStyle = '#ff3df5';
+    ctx.beginPath();
+    ctx.moveTo(-1.2 * s, 1.0 * s); ctx.lineTo(0, 1.0 * s + fl); ctx.lineTo(1.2 * s, 1.0 * s);
+    ctx.stroke();
+    ctx.strokeStyle = '#3dff7a';
+    ctx.beginPath();
+    ctx.moveTo(-0.6 * s, 1.0 * s); ctx.lineTo(0, 1.0 * s + fl * 0.6); ctx.lineTo(0.6 * s, 1.0 * s);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawParts() {
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1, scale * 0.16);
+  for (const p of parts) {
+    if (p.life <= 0) continue;
+    ctx.globalAlpha = Math.max(0, p.life);
+    const x = p.x * scale, y = p.y * scale;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - p.vx * scale * 0.05, y - p.vy * scale * 0.05);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+  const W = Croo.W, H = Croo.H;
+  const size = Math.max(10, Math.round(H * 0.028));
+  const yL = H - size * 2.6, yU = yL + size * 1.05, yV = yL + size * 2.25;
+  const alt = Math.max(0, (groundYAt(lander.x) - (lander.y + LANDER_R)) * 3);
+  const cols = [
+    ['ALT', '(M)', pad(alt, 3), '#fff'],
+    ['VERT', '(M/SEC)', pad(-lander.vy * 0.6, 3),
+      (state === 'play' && Math.abs(lander.vy) > SAFE_VY) ? '#ff5a5a' : '#fff'],
+    ['HORIZ', '(M/SEC)', pad(lander.vx * 0.6, 3),
+      (state === 'play' && Math.abs(lander.vx) > SAFE_VX) ? '#ff5a5a' : '#fff'],
+    ['FUEL', '(LBS)', pad(lander.fuel, 4),
+      (lander.fuel <= 0) ? '#ff5a5a' : (lander.fuel < FUEL0 * 0.25 ? '#ffd23d' : '#fff')],
+  ];
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = size + 'px monospace';
+  const n = cols.length;
+  for (let i = 0; i < n; i++) {
+    const cxp = W * ((i + 0.5) / n);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(cols[i][0], cxp, yL);
+    ctx.fillText(cols[i][1], cxp, yU);
+    ctx.fillStyle = cols[i][3];
+    ctx.fillText(cols[i][2], cxp, yV);
+  }
+  ctx.restore();
+}
+
+function drawOverlays() {
+  const H = Croo.H;
+  const big = Math.max(20, H * 0.06), small = Math.max(11, H * 0.026);
+  if (muteFlash > 0) center(['SOUND ' + (muted ? 'OFF' : 'ON')], H * 0.12, small, Math.min(1, muteFlash));
+
+  if (state === 'start') {
+    center(['LUNAR LANDER'], H * 0.28, big);
+    center([
+      '←/→  or  A/D   rotate',
+      '↑ · W · SPACE   thrust',
+      'set down slow & level on the green pad',
+      'M sound   ·   ESC exit',
+      '',
+      'press SPACE to begin',
+    ], H * 0.46, small, 0.9);
+  } else if (state === 'landed') {
+    center([msg], H * 0.32, big * 0.66, 1, '#5dff5d');
+    center(['press SPACE to fly again'], H * 0.44, small, 0.9);
+  } else if (state === 'crashed') {
+    center([msg], H * 0.32, big * 0.6, 1, '#ff5a5a');
+    center(['press SPACE to try again'], H * 0.44, small, 0.9);
+  }
+
+  if (userPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['PAUSED', 'in croo-web, ESC closes the game', 'press ESC to resume'],
+      Croo.H / 2, Math.max(14, Croo.H * 0.034));
+  } else if (Croo.systemPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['paused'], Croo.H / 2, Math.max(14, Croo.H * 0.034), 0.8);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, Croo.W, Croo.H);
+  drawTerrain();
+  if (state !== 'crashed') drawLander();
+  if (parts.length) drawParts();
+  drawHUD();
+  drawOverlays();
+}
+
+// ------------------------------- main loop --------------------------------
+let last = 0;
+function frame(now) {
+  const dt = Math.min(0.033, last ? (now - last) / 1000 : 0);
+  last = now;
+  if (!(userPaused || Croo.systemPaused)) update(dt);
+  else last = now;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+Croo.layout();          // sets VW/scale and (state==='start') builds the world
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

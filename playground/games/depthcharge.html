@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- croo-web menu label (sole registration step) -->
+<meta name="croo-game" content="Depth Charge">
+<title>Depth Charge</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; width: 100vw; height: 100dvh; background: #000; }
+  /* canvas backing store is sized to device pixels; CSS stretches it 1:1. */
+  #c { display: block; width: 100%; height: 100%; background: #000;
+       image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<script>
+"use strict";
+/* ============================================================================
+   CROO-GAME CONTRACT BOILERPLATE  —  copy this block verbatim into new games.
+   Everything croo-web needs lives here; the game logic below only calls into it.
+   Contract: one offline self-contained .html; fills 100vw x 100dvh, dark;
+   ESC -> window.parent.postMessage({type:'croo-game-exit'},'*'); preventDefault
+   only on the game's own keys; <meta name="croo-game">; pause on hidden/blur.
+   ========================================================================== */
+const Croo = (() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const wrap = document.getElementById('wrap');
+  const STANDALONE = (window.parent === window); // true in a plain tab
+
+  let DPR = 1, W = 1, H = 1;          // canvas device-pixel dimensions
+  const resizeCbs = [];
+  function layout() {
+    const r = wrap.getBoundingClientRect();
+    DPR = window.devicePixelRatio || 1;
+    W = Math.max(1, Math.round(r.width  * DPR));
+    H = Math.max(1, Math.round(r.height * DPR));
+    canvas.width = W; canvas.height = H;
+    ctx.imageSmoothingEnabled = false;
+    for (const cb of resizeCbs) cb(W, H);
+  }
+  window.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(wrap);
+
+  // ESC is the single integration hook. Standalone: parent===self so the
+  // message is harmless and we surface a pause affordance instead (a script
+  // can't close a tab it didn't open). Embedded: croo-web closes the overlay.
+  let onEscStandalone = () => {};
+  function fireExit() {
+    window.parent.postMessage({ type: 'croo-game-exit' }, '*');
+    if (STANDALONE) onEscStandalone();
+  }
+
+  // Own the keyboard, but ONLY the game's keys — never Tab or browser
+  // shortcuts (Cmd/Ctrl/Alt), so the operator can always switch away. Keys are
+  // normalized to lowercase so the game reads one consistent form (arrows
+  // included), e.g. keys['arrowleft'], 'escape', 'enter', ' '.
+  const owned = new Set(['arrowup','arrowdown','arrowleft','arrowright',
+                         'w','s','a','d',' ','m','2','escape','enter']);
+  const keyCbs = { down: [], up: [] };
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;      // let shortcuts pass
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    e.preventDefault();
+    if (k === 'escape') { fireExit(); return; }
+    for (const cb of keyCbs.down) cb(k, e);
+  }, { passive: false });
+  window.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    if (!owned.has(k)) return;
+    for (const cb of keyCbs.up) cb(k, e);
+  });
+
+  // Keyboard needs a focused frame; grab focus on load and on any pointer down.
+  window.addEventListener('load', () => { try { window.focus(); } catch (_) {} });
+  wrap.addEventListener('pointerdown', () => { try { window.focus(); } catch (_) {} });
+
+  // Pause hooks. System pause = hidden tab or lost focus (saves CPU; the loop
+  // owner decides what to do). We expose state; the game halts its update.
+  let systemPaused = false;
+  const pauseCbs = [];
+  function setSystemPaused(v) {
+    if (systemPaused === v) return;
+    systemPaused = v;
+    for (const cb of pauseCbs) cb(systemPaused);
+  }
+  document.addEventListener('visibilitychange', () => setSystemPaused(document.hidden));
+  window.addEventListener('blur',  () => setSystemPaused(true));
+  window.addEventListener('focus', () => setSystemPaused(document.hidden));
+
+  // Lazy Web Audio: AudioContext is autoplay-suspended until a gesture, so we
+  // build/resume it on first key. Square-wave blips, no audio assets.
+  let actx = null;
+  function ensureAudio() {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+    } catch (_) { actx = null; }
+  }
+  function blip(freq, durMs, vol) {
+    if (!actx) return;
+    try {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'square'; o.frequency.value = freq;
+      o.connect(g); g.connect(actx.destination);
+      const t = actx.currentTime, v = vol == null ? 0.05 : vol;
+      g.gain.setValueAtTime(v, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + durMs / 1000);
+      o.start(t); o.stop(t + durMs / 1000 + 0.02);
+    } catch (_) {}
+  }
+
+  return {
+    ctx, STANDALONE,
+    get W() { return W; }, get H() { return H; }, get DPR() { return DPR; },
+    get systemPaused() { return systemPaused; },
+    onResize(cb) { resizeCbs.push(cb); },
+    onKeyDown(cb) { keyCbs.down.push(cb); },
+    onKeyUp(cb) { keyCbs.up.push(cb); },
+    onSystemPause(cb) { pauseCbs.push(cb); },
+    setEscStandalone(cb) { onEscStandalone = cb; },
+    layout, ensureAudio, blip,
+  };
+})();
+/* ===================== END CROO-GAME CONTRACT BOILERPLATE ==================== */
+
+
+/* ============================ GAME: DEPTH CHARGE ===========================
+   After the 1977 Gremlin/Sega arcade game. A destroyer patrols the surface;
+   drop depth charges onto subs cruising at six depths (deeper = more points)
+   while dodging the mines the subs fire straight up at your hull. You have a
+   fixed patrol time and three destroyers — sink as many subs as you can.
+   ========================================================================== */
+const ctx = Croo.ctx;
+
+// Fixed virtual world: height constant, width tracks aspect so a single scale
+// fills the screen with no letterbox (same model as the other croo games).
+const VH = 150;
+let VW = 0, scale = 1;            // scale = device px per virtual unit (= H / VH)
+
+const SURFACE_Y = 26;            // waterline; destroyer rides here, sky above
+const NROWS     = 6;             // submarine depth lanes
+const ROW_TOP   = 44, ROW_BOT = 140;
+const rowY = (r) => ROW_TOP + r * (ROW_BOT - ROW_TOP) / (NROWS - 1);
+const POINTS = (r) => (r + 1) * 10;          // deeper lane => more points
+
+const DEST_HALF = 7;             // destroyer half-width (units)
+const DEST_SPEED = 40;
+const SUB_W = 11, SUB_H = 4.2;
+const CHARGE_R = 1.3, CHARGE_SPEED = 40;
+const MINE_R = 1.6, MINE_SPEED = 19;
+const MAX_SUBS = 6, MAX_MINES = 3;
+const CAMP_T = 1.6;                           // sit still longer than this and subs below take aim
+const AIM_RANGE = 16;                         // a sub within this x-distance of the hull counts as "below you"
+const AIM_SPEED = MINE_SPEED * 1.12;          // aimed mines travel a touch faster than the straight ones
+const MIN_CHARGES = 1, MAX_CHARGES = 10;      // selectable range on the title screen
+let maxCharges = 2;                           // active setting (adjust with ←/→, persists across games)
+const GAME_TIME = 99, START_LIVES = 3;
+
+const dest = { x: 0, dir: 0, invuln: 0, stillT: 0 };
+let subs = [], charges = [], mines = [], parts = [];
+// sinking wreckage + rising bubbles from a killed sub. Purely visual: neither
+// can hit anything, both live outside the play-state gate so a last-frame kill
+// still finishes its animation on the game-over screen.
+let wrecks = [], bubbles = [];
+let score = 0, best = 0, lives = START_LIVES, timeLeft = GAME_TIME, elapsed = 0;
+let spawnT = 0, campFireT = 0;
+
+let state = 'start';             // start | play | over
+let muted = true, userPaused = false, muteFlash = 0;
+const keys = Object.create(null);
+
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+Croo.onResize((w, h) => {
+  const newScale = h / VH;
+  const newVW = w / newScale;
+  if (VW > 0) {                                // keep relative x positions on resize
+    const r = newVW / VW;
+    dest.x *= r;
+    for (const s of subs) s.x *= r;
+    for (const c of charges) c.x *= r;
+    for (const m of mines) m.x *= r;
+    for (const p of parts) p.x *= r;
+    for (const w of wrecks) for (const c of w.chunks) c.x *= r;
+    for (const b of bubbles) b.x *= r;
+  }
+  VW = newVW; scale = newScale;
+  if (state === 'start') dest.x = VW / 2;
+});
+
+Croo.onSystemPause(() => {});                  // loop reads Croo.systemPaused
+Croo.setEscStandalone(() => { userPaused = !userPaused; });
+
+Croo.onKeyDown((k) => {
+  Croo.ensureAudio();                          // first gesture wires audio
+  if (k === 'm') { muted = !muted; muteFlash = 1.2; return; }
+  // off the play screen, ←/→ (or A/D) adjust the max-charges option
+  if (state !== 'play' && (k === 'arrowleft' || k === 'arrowright' || k === 'a' || k === 'd')) {
+    const dir = (k === 'arrowright' || k === 'd') ? 1 : -1;
+    maxCharges = clamp(maxCharges + dir, MIN_CHARGES, MAX_CHARGES);
+    Croo.blip(340 + maxCharges * 30, 60, muted ? 0 : 0.04);
+    return;
+  }
+  if (k === ' ' || k === 'enter') {
+    if (state !== 'play') { newGame(); return; }
+    dropCharge();
+    return;
+  }
+  keys[k] = true;
+});
+Croo.onKeyUp((k) => { keys[k] = false; });
+
+function newGame() {
+  subs = []; charges = []; mines = []; parts = []; wrecks = []; bubbles = [];
+  score = 0; lives = START_LIVES; timeLeft = GAME_TIME; elapsed = 0;
+  spawnT = 0; campFireT = 0;
+  dest.x = VW / 2; dest.dir = 0; dest.invuln = 0; dest.stillT = 0;
+  state = 'play';
+}
+
+function dropCharge() {
+  if (charges.length >= maxCharges) return;
+  charges.push({ x: dest.x, y: SURFACE_Y });
+  Croo.blip(220, 70, muted ? 0 : 0.045);
+}
+
+function spawnSub() {
+  const r = (Math.random() * NROWS) | 0;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  const diff = 1 + elapsed / 90;               // gentle speed ramp over the patrol
+  const speed = rand(13, 22) * diff + r * 0.8;
+  subs.push({
+    row: r, y: rowY(r),
+    x: dir > 0 ? -SUB_W : VW + SUB_W,
+    vx: dir * speed,
+    fireT: rand(1.5, 4.5),
+  });
+}
+
+// an aimed mine leaves the sub on a vector toward the destroyer's current spot,
+// so the only way to beat it is to move (which also clears the camping timer).
+function fireAimed(s) {
+  const mx = s.x, my = s.y - SUB_H;
+  const dx = dest.x - mx, dy = SURFACE_Y - my;
+  const d = Math.hypot(dx, dy) || 1;
+  mines.push({ x: mx, y: my, vx: dx / d * AIM_SPEED, vy: dy / d * AIM_SPEED, aimed: true });
+  Croo.blip(120, 150, muted ? 0 : 0.05);
+}
+
+function explode(x, y, n, col) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = rand(8, 34);
+    parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, col });
+  }
+}
+
+// A killed sub leaves a wreck: three hull pieces (fore, aft, tower) plus a
+// scatter of small debris chips, all kicked outward from the blast and then
+// sinking under a gentle water-gravity. Bubbles are seeded immediately and keep
+// venting from the sinking pieces for ~2.6s, so you see the wreck breathe its
+// last as it goes down. vxOrig carries a little of the sub's own motion into
+// the debris so a fast-moving sub throws its pieces along the same heading.
+function spawnWreck(x, y, vxOrig) {
+  const chunks = [
+    { x: x - SUB_W * 0.28, y, vx: vxOrig * 0.15 + rand(-9, -2), vy: rand(-6, 2),
+      rot: 0, vrot: rand(-1.4, 1.4), w: SUB_W * 0.5, h: SUB_H, kind: 'hull' },
+    { x: x + SUB_W * 0.28, y, vx: vxOrig * 0.15 + rand( 2,  9), vy: rand(-6, 2),
+      rot: 0, vrot: rand(-1.4, 1.4), w: SUB_W * 0.5, h: SUB_H, kind: 'hull' },
+    { x, y: y - SUB_H * 0.9,  vx: vxOrig * 0.10 + rand(-4, 4), vy: rand(-9, -3),
+      rot: 0, vrot: rand(-2.2, 2.2), w: 2.4, h: 1.8, kind: 'tower' },
+  ];
+  for (let i = 0; i < 5; i++) {                                // small debris chips
+    chunks.push({
+      x, y, vx: rand(-16, 16), vy: rand(-12, 4),
+      rot: 0, vrot: rand(-3, 3),
+      w: rand(0.5, 1.0), h: rand(0.4, 0.9), kind: 'debris',
+    });
+  }
+  wrecks.push({ chunks, age: 0, life: 4.0, bubbleT: 0 });
+  for (let i = 0; i < 6; i++) {                                // starter bubble burst
+    bubbles.push({
+      x: x + rand(-1.8, 1.8), y: y + rand(-1.5, 1.5),
+      r: rand(0.4, 0.9), vy: rand(11, 18),
+      phase: rand(0, Math.PI * 2), wobble: rand(3, 7), life: 3.0,
+    });
+  }
+}
+
+function hitDestroyer() {
+  if (dest.invuln > 0) return;
+  lives--;
+  dest.invuln = 1.8;
+  explode(dest.x, SURFACE_Y - 2, 28, '#ff7a3d');
+  Croo.blip(70, 360, muted ? 0 : 0.06);
+  if (lives <= 0) endGame();
+}
+
+function endGame() {
+  state = 'over';
+  if (score > best) best = score;
+}
+
+function update(dt) {
+  if (muteFlash > 0) muteFlash = Math.max(0, muteFlash - dt);
+
+  // particles drift + fade everywhere (so explosions linger on the over screen)
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 18 * dt; p.life -= dt * 1.1; }
+  parts = parts.filter((p) => p.life > 0);
+
+  // wreckage sinks under a gentle water-gravity, drifting sideways with damping;
+  // pieces spin down slowly. Vents bubbles from a random chunk for ~2.6s so the
+  // wreck visibly gurgles as it goes under, then just sinks silently. Runs
+  // outside the play gate so a killing last-frame hit still animates through
+  // the game-over screen (same reason particles do).
+  for (const w of wrecks) {
+    w.age += dt;
+    w.bubbleT -= dt;
+    if (w.age < 2.6 && w.bubbleT <= 0) {
+      const c = w.chunks[(Math.random() * w.chunks.length) | 0];
+      bubbles.push({
+        x: c.x + rand(-1, 1), y: c.y,
+        r: rand(0.35, 0.85), vy: rand(10, 17),
+        phase: rand(0, Math.PI * 2), wobble: rand(3, 7), life: 3.0,
+      });
+      w.bubbleT = rand(0.10, 0.28);
+    }
+    for (const c of w.chunks) {
+      c.x += c.vx * dt;
+      c.y += c.vy * dt;
+      c.vx *= Math.max(0, 1 - dt * 1.8);            // water damping
+      c.vy = Math.min(c.vy + 6 * dt, 14);           // terminal sink speed
+      c.rot += c.vrot * dt;
+      c.vrot *= Math.max(0, 1 - dt * 0.9);
+    }
+  }
+  wrecks = wrecks.filter((w) => w.age < w.life);
+
+  // bubbles rise, wobble sideways, and pop at the surface into a small burst of
+  // pale spray particles. Growing r as they rise mimics the pressure drop and
+  // sells the depth of the water column; life is a fallback so a bubble born
+  // just under the waterline can't linger.
+  for (const b of bubbles) {
+    b.phase += dt * 3;
+    b.x += Math.sin(b.phase) * b.wobble * dt;
+    b.y -= b.vy * dt;
+    b.r += 0.25 * dt;
+    b.life -= dt;
+    if (b.y <= SURFACE_Y) {
+      for (let i = 0; i < 4; i++) {
+        const a = rand(-Math.PI * 0.9, -Math.PI * 0.1);   // upward hemisphere
+        parts.push({
+          x: b.x, y: SURFACE_Y,
+          vx: Math.cos(a) * rand(6, 14), vy: Math.sin(a) * rand(6, 14),
+          life: 0.4, col: '#dff5ff',
+        });
+      }
+      b.life = 0;
+    }
+  }
+  bubbles = bubbles.filter((b) => b.life > 0);
+
+  if (state !== 'play') return;
+
+  elapsed += dt;
+  timeLeft -= dt;
+  if (timeLeft <= 0) { timeLeft = 0; endGame(); return; }
+  if (dest.invuln > 0) dest.invuln = Math.max(0, dest.invuln - dt);
+
+  // destroyer
+  dest.dir = ((keys['arrowright'] || keys['d']) ? 1 : 0) - ((keys['arrowleft'] || keys['a']) ? 1 : 0);
+  dest.x = clamp(dest.x + dest.dir * DEST_SPEED * dt, DEST_HALF, VW - DEST_HALF);
+
+  // camping pressure: hold still too long and the nearest sub beneath you takes aim
+  dest.stillT = dest.dir === 0 ? dest.stillT + dt : 0;
+  campFireT -= dt;
+  if (dest.stillT > CAMP_T && campFireT <= 0 && mines.length < MAX_MINES) {
+    let target = null, bestDx = AIM_RANGE;
+    for (const s of subs) { const adx = Math.abs(s.x - dest.x); if (adx < bestDx) { bestDx = adx; target = s; } }
+    if (target) { fireAimed(target); campFireT = rand(0.7, 1.2); }
+  }
+
+  // spawn subs up to the cap
+  spawnT -= dt;
+  if (spawnT <= 0 && subs.length < MAX_SUBS) {
+    spawnSub();
+    spawnT = rand(0.7, 1.8);
+  }
+
+  // subs move + occasionally fire a mine straight up
+  for (const s of subs) {
+    s.x += s.vx * dt;
+    s.fireT -= dt;
+    if (s.fireT <= 0) {
+      if (mines.length < MAX_MINES && s.x > SUB_W && s.x < VW - SUB_W) {
+        mines.push({ x: s.x, y: s.y - SUB_H, vx: 0, vy: -MINE_SPEED });
+        Croo.blip(180, 90, muted ? 0 : 0.035);
+      }
+      s.fireT = rand(2.4, 5.5);
+    }
+  }
+  subs = subs.filter((s) => s.x > -2 * SUB_W && s.x < VW + 2 * SUB_W);
+
+  // depth charges sink; check sub + mine collisions
+  for (const c of charges) {
+    c.y += CHARGE_SPEED * dt;
+    for (const s of subs) {
+      if (s.dead) continue;
+      if (Math.abs(c.x - s.x) < SUB_W / 2 + CHARGE_R && Math.abs(c.y - s.y) < SUB_H / 2 + CHARGE_R) {
+        s.dead = true; c.dead = true;
+        score += POINTS(s.row);
+        explode(s.x, s.y, 18, '#3fd0ff');
+        spawnWreck(s.x, s.y, s.vx);
+        Croo.blip(520 + s.row * 40, 130, muted ? 0 : 0.05);
+        break;
+      }
+    }
+    if (c.dead) continue;
+    for (const m of mines) {
+      if (!m.dead && Math.abs(c.x - m.x) < MINE_R + CHARGE_R && Math.abs(c.y - m.y) < MINE_R + CHARGE_R) {
+        m.dead = true; c.dead = true;
+        explode(m.x, m.y, 12, '#ff5a5a');
+        Croo.blip(300, 90, muted ? 0 : 0.04);
+        break;
+      }
+    }
+  }
+  charges = charges.filter((c) => !c.dead && c.y < VH + 4);
+  subs = subs.filter((s) => !s.dead);
+
+  // mines rise (aimed ones also drift sideways); reaching the surface either
+  // strikes the hull or fizzles. aimed mines sailing off the sides are dropped.
+  for (const m of mines) {
+    m.x += m.vx * dt;
+    m.y += m.vy * dt;
+    if (m.y <= SURFACE_Y) {
+      m.dead = true;
+      if (Math.abs(m.x - dest.x) < DEST_HALF + MINE_R) hitDestroyer();
+    }
+  }
+  mines = mines.filter((m) => !m.dead && m.x > -4 && m.x < VW + 4);
+}
+
+// ------------------------------- drawing ----------------------------------
+function center(lines, cy, size, alpha, color) {
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.fillStyle = color || '#fff';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = size + 'px monospace';
+  const lh = size * 1.5, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, Croo.W / 2, y0 + i * lh));
+  ctx.restore();
+}
+
+function pad(n, w) {
+  let s = String(Math.max(0, Math.round(n)));
+  while (s.length < w) s = '0' + s;
+  return s;
+}
+
+function drawSea() {
+  const sy = SURFACE_Y * scale;
+  ctx.fillStyle = '#00131f';                   // water body
+  ctx.fillRect(0, sy, Croo.W, Croo.H - sy);
+  ctx.strokeStyle = '#1f6f8f';                 // waterline
+  ctx.lineWidth = Math.max(1, scale * 0.22);
+  ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(Croo.W, sy); ctx.stroke();
+  // faint depth-lane guides
+  ctx.strokeStyle = 'rgba(63,208,255,0.06)';
+  ctx.lineWidth = Math.max(1, scale * 0.12);
+  for (let r = 0; r < NROWS; r++) {
+    const y = rowY(r) * scale;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(Croo.W, y); ctx.stroke();
+  }
+}
+
+function drawDestroyer() {
+  if (dest.invuln > 0 && (Math.floor(dest.invuln * 12) % 2 === 0)) return;  // blink when hit
+  const s = scale, x = dest.x * s, y = SURFACE_Y * s;
+  ctx.fillStyle = '#cfd6dd'; ctx.strokeStyle = '#cfd6dd';
+  ctx.lineWidth = Math.max(1, s * 0.14);
+  // hull (trapezoid sitting on the waterline)
+  ctx.beginPath();
+  ctx.moveTo(x - DEST_HALF * s, y);
+  ctx.lineTo(x + DEST_HALF * s, y);
+  ctx.lineTo(x + (DEST_HALF - 1.6) * s, y - 2.0 * s);
+  ctx.lineTo(x - (DEST_HALF - 1.6) * s, y - 2.0 * s);
+  ctx.closePath(); ctx.fill();
+  // bridge + stack
+  ctx.fillRect(x - 1.6 * s, y - 4.4 * s, 3.2 * s, 2.4 * s);
+  ctx.fillRect(x + 1.0 * s, y - 5.6 * s, 1.2 * s, 1.4 * s);
+  // forward gun
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - 3.0 * s, y - 2.4 * s);
+  ctx.lineTo(x - 5.2 * s, y - 3.2 * s);
+  ctx.stroke();
+}
+
+function drawSub(s) {
+  const sc = scale, x = s.x * sc, y = s.y * sc;
+  ctx.fillStyle = '#3fd0ff';
+  ctx.beginPath();
+  ctx.ellipse(x, y, (SUB_W / 2) * sc, (SUB_H / 2) * sc, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // conning tower, offset toward travel direction
+  const off = (s.vx >= 0 ? 0.8 : -0.8) * sc;
+  ctx.fillRect(x + off - 1.0 * sc, y - (SUB_H / 2 + 1.6) * sc, 2.0 * sc, 1.8 * sc);
+  ctx.fillRect(x + off - 0.2 * sc, y - (SUB_H / 2 + 2.8) * sc, 0.5 * sc, 1.4 * sc);  // periscope
+}
+
+function drawCharge(c) {
+  const s = scale, x = c.x * s, y = c.y * s;
+  ctx.strokeStyle = 'rgba(255,210,61,0.5)';
+  ctx.lineWidth = Math.max(1, s * 0.2);
+  ctx.beginPath(); ctx.moveTo(x, y - CHARGE_R * 2.2 * s); ctx.lineTo(x, y); ctx.stroke();
+  ctx.fillStyle = '#ffd23d';
+  ctx.beginPath(); ctx.arc(x, y, CHARGE_R * s, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawMine(m) {
+  const s = scale, x = m.x * s, y = m.y * s, R = MINE_R * s;
+  const col = m.aimed ? '#ff9a3d' : '#ff5a5a';   // aimed mines glow orange — they're tracking you
+  ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, s * 0.16);
+  for (let i = 0; i < 8; i++) {                // spikes
+    const a = i * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(a) * R, y + Math.sin(a) * R);
+    ctx.lineTo(x + Math.cos(a) * R * 1.7, y + Math.sin(a) * R * 1.7);
+    ctx.stroke();
+  }
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawWrecks() {
+  // Alpha ramps to full quickly, then fades over the tail — the pieces are
+  // solid while they're still recognisably a broken sub, and dissolve into the
+  // deep as they sink out. Slightly darker than a live sub so a wreck reads as
+  // "damaged", not "another target".
+  for (const w of wrecks) {
+    const t = w.age / w.life;
+    const a = t < 0.15 ? 1 : Math.max(0, 1 - (t - 0.15) / 0.85);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#2fa5cd';
+    for (const c of w.chunks) {
+      const x = c.x * scale, y = c.y * scale;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(c.rot);
+      if (c.kind === 'hull') {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, (c.w / 2) * scale, (c.h / 2) * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const w2 = c.w * scale, h2 = c.h * scale;
+        ctx.fillRect(-w2 / 2, -h2 / 2, w2, h2);
+      }
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBubbles() {
+  // Hollow rings with a barely-there fill — reads as "air pocket in water" at
+  // any scale without punching a bright hole in the composition.
+  ctx.strokeStyle = 'rgba(200,230,245,0.72)';
+  ctx.fillStyle   = 'rgba(150,205,235,0.18)';
+  ctx.lineWidth = Math.max(1, scale * 0.14);
+  for (const b of bubbles) {
+    const x = b.x * scale, y = b.y * scale, r = Math.max(1, b.r * scale);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+}
+
+function drawParts() {
+  for (const p of parts) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.col || '#fff';
+    const x = p.x * scale, y = p.y * scale, r = Math.max(1, scale * 0.4);
+    ctx.fillRect(x - r / 2, y - r / 2, r, r);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+  const W = Croo.W, H = Croo.H, size = Math.max(11, Math.round(H * 0.03));
+  ctx.save();
+  ctx.font = size + 'px monospace'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';   ctx.fillText('SCORE ' + pad(score, 5), size * 0.5, size * 0.4);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = timeLeft <= 10 ? '#ff5a5a' : '#fff';
+  ctx.fillText('TIME ' + pad(timeLeft, 2), W / 2, size * 0.4);
+  ctx.textAlign = 'right';  ctx.fillStyle = '#fff';
+  ctx.fillText('SHIPS ' + Math.max(0, lives), W - size * 0.5, size * 0.4);
+  ctx.restore();
+}
+
+function drawOverlays() {
+  const H = Croo.H;
+  const big = Math.max(20, H * 0.06), small = Math.max(11, H * 0.026);
+  if (muteFlash > 0) center(['SOUND ' + (muted ? 'OFF' : 'ON')], H * 0.12, small, Math.min(1, muteFlash));
+
+  if (state === 'start') {
+    center(['DEPTH CHARGE'], H * 0.24, big);
+    center([
+      'SPACE   drop a depth charge   ·   M sound   ·   ESC exit',
+      'sink the subs — the deeper the lane, the more points',
+      'dodge the mines they fire up at your hull',
+      'keep moving — sit still and the subs below take aim',
+      '(in play, ←/→ or A/D steer the destroyer)',
+    ], H * 0.44, small, 0.9);
+    center(['◄ ►   MAX DEPTH CHARGES AT ONCE:  ' + maxCharges + '   (' + MIN_CHARGES + '–' + MAX_CHARGES + ')'],
+      H * 0.62, small * 1.1, 1, '#3fd0ff');
+    center(['press SPACE to begin'], H * 0.7, small, 0.85);
+  } else if (state === 'over') {
+    center(['GAME OVER'], H * 0.3, big, 1, '#ff5a5a');
+    center(['SCORE ' + pad(score, 5) + '     BEST ' + pad(best, 5)], H * 0.42, small * 1.15, 0.95);
+    center(['◄ ►   max depth charges at once:  ' + maxCharges], H * 0.54, small, 0.85, '#3fd0ff');
+    center(['press SPACE to patrol again'], H * 0.62, small, 0.85);
+  }
+
+  if (userPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['PAUSED', 'in croo-web, ESC closes the game', 'press ESC to resume'],
+      Croo.H / 2, Math.max(14, Croo.H * 0.034));
+  } else if (Croo.systemPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, Croo.W, Croo.H);
+    center(['paused'], Croo.H / 2, Math.max(14, Croo.H * 0.034), 0.8);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, Croo.W, Croo.H);
+  drawSea();
+  if (wrecks.length) drawWrecks();
+  for (const s of subs) drawSub(s);
+  for (const c of charges) drawCharge(c);
+  for (const m of mines) drawMine(m);
+  if (bubbles.length) drawBubbles();
+  if (state !== 'over' || lives > 0) drawDestroyer();
+  if (parts.length) drawParts();
+  drawHUD();
+  drawOverlays();
+}
+
+// ------------------------------- main loop --------------------------------
+let last = 0;
+function frame(now) {
+  const dt = Math.min(0.033, last ? (now - last) / 1000 : 0);
+  last = now;
+  if (!(userPaused || Croo.systemPaused)) update(dt);
+  else last = now;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+Croo.layout();          // sets VW/scale and centers the destroyer
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
