@@ -23,6 +23,8 @@ back — the mailbox is where moving work becomes visible.
 
 ## Reading the traffic
 
+![An agent's mailbox: inbox, outbox and a file handoff](../screenshots/mailbox.png)
+
 Open any mailbox and work with what's there: open and preview items,
 copy or download them, archive what's settled, restore what you
 archived too soon. Nothing an agent delivers is locked away in a

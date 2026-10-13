@@ -1,5 +1,7 @@
 # Croo
 
+![The Croo workspace: fleet grid, two agent panes, usage rings](screenshots/workspace.png)
+
 **Your persistent AI agent crew.** Croo runs a team of named AI agents
 on your own machine — each with its own name, job and memory of
 yesterday — and gives you one workspace to brief them, watch them work,

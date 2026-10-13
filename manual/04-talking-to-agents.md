@@ -29,6 +29,8 @@ answer is exactly the context a colleague needs.
 
 ## One-click answers
 
+![A numbered menu rendered as pressable buttons](../screenshots/numbered-menu-buttons.png)
+
 When an agent offers choices — a numbered menu, an approval, options —
 the choices appear as buttons. One click answers. You'll meet this
 constantly: agents ask before anything that needs your word, and Croo
@@ -47,6 +49,8 @@ Good macro candidates from real use: your daily status ask, your
 test-before-handover reminder, your "write me a bug report" request.
 
 ## Pinned drafts and recents
+
+![A pinned macro and a pinned draft in the input pane](../screenshots/pinned-macro-and-draft.png)
 
 An agent is busy? Keep thinking. Write the next instruction, attach the
 files it needs, and pin it for later. Every agent keeps its own list of

@@ -24,6 +24,8 @@ first brief.
 
 ## What a new agent reads
 
+![An agent's identity file open from the menu](../screenshots/agent-identity-file.png)
+
 The moment Priya exists, two documents shape her:
 
 - **Her identity file** — who she is: name, engine, role, and the
@@ -86,6 +88,8 @@ question, and it's the one that matters:
 - **Delete profile** — gone for good.
 
 ## Start fresh
+
+![The agent menu: Take leave, Start fresh, Fire](../screenshots/agent-menu.png)
 
 Sometimes you want the same agent with a clean slate — same name, same
 identity, no conversation. **Start fresh** does exactly that. The

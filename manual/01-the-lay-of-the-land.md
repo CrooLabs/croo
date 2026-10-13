@@ -36,6 +36,8 @@ discussion — precisely so those calls stay yours.
 
 ## And one name: Nova
 
+![The workspace at a glance: Nova and a small crew, one conversation open](../screenshots/workspace-at-a-glance.png)
+
 Nova is your custodian — the agent who looks after you and Croo itself.
 She's there from the first minute: ask her anything, or hand her the
 chores — adding agents, creating projects, troubleshooting, setting

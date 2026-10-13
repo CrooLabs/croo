@@ -33,6 +33,8 @@ stretch, not a policy.
 
 ## The red button
 
+![The header with the red stop-all button](../screenshots/header-red-button-power-through.png)
+
 One red button in the header cuts off every standing approval at once —
 every agent's Power-Through, gone in one press. Be precise about what
 it does and doesn't do: it stops the *automatic yeses*, not the agents'
@@ -44,6 +46,8 @@ To actually halt an agent, you act on the agent: tell it to stop in
 chat, redirect it, or put it on leave from its ⋮ menu (chapter 3).
 
 ## Alerts
+
+![An alert pop-up with the mute control in the header](../screenshots/alert-popup-mute.png)
 
 Agents and tools can raise alerts at four levels of urgency. On your
 desk, an alert is spoken aloud or shown as a pop-up — your standing

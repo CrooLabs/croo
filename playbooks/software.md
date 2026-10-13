@@ -8,6 +8,8 @@ with you.
 
 ## The crew to hire
 
+![The workspace after setup: Nova, Jack and Elsa](../screenshots/playbook-software-setup.png)
+
 Start with two agents, not five. You can always hire later, and a small
 crew is easier to learn with.
 
@@ -51,6 +53,8 @@ when their piece ships; Jack and Elsa stay, and keep their memory.
 
 ## The first project
 
+![Jack and Elsa in a Discuss, consensus not yet reached](../screenshots/playbook-software-discuss.png)
+
 Don't start with "build the app". Start with one piece you can review in
 an afternoon — a real feature, small enough to judge.
 
@@ -90,6 +94,8 @@ agree the seam between them.
 Three agents is a real operation. Past that, you'll know what you need.
 
 ## A typical week
+
+![The Telegram chat bound to Jack, on the phone](../screenshots/playbook-software-telegram.png)
 
 - **Morning.** Open the workspace, read the room: who's waiting on you,
   what landed in the mailbox overnight. Answer the waits first — a

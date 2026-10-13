@@ -23,6 +23,8 @@ your pocket, Telegram when you want your crew in your messages.
 
 ## The web client
 
+![The phone layout: agent picker and one-tap answers](../screenshots/phone-layout.png)
+
 Croo's phone layout: an agent picker, the chat, quick keys and
 one-tap answers. Open it in the phone's browser and add it to your
 home screen — it behaves like an app from then on. It's deliberately
@@ -42,6 +44,8 @@ Three things the web client does on the phone:
   commute becomes a check-in, not a blackout.
 
 ## Telegram
+
+![A Telegram chat bound to an agent](../screenshots/telegram-chat.png)
 
 Ask Nova to set it up — she walks you through it step by step, until
 the first message lands on your phone.

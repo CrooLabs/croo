@@ -14,6 +14,8 @@ Suggest it, and we may add it.
 
 ## Keys
 
+![The key library with keys pinned to the footer bar](../screenshots/key-library.png)
+
 Keyboard shortcuts cover the moves you make constantly: switch agents,
 send to a pane, flip layouts, open the work map. Behind them sits a
 full key library in the menu — browse it, and pin up to 14 keystrokes

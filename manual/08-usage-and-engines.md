@@ -8,6 +8,8 @@ glance away.** Nothing here needs arithmetic; the rings do it.
 
 ## The two fuels
 
+![The usage column: agent rings and per-engine gauges](../screenshots/usage-column.png)
+
 **Conversations fill.** An agent's conversation has a token limit —
 the more it holds, the fuller it gets. Croo shows each agent's usage
 as a ring that fills as the agent works.

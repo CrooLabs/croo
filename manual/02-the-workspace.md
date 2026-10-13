@@ -12,6 +12,8 @@ devices is its own short doc: Reach Croo from anywhere.)
 
 ## The fleet at a glance
 
+![The fleet grid: agents in mixed states](../screenshots/fleet-grid-states.png)
+
 The fleet grid shows one tile per agent, each wearing its state. The
 states are worth learning early, because they're the same everywhere in
 Croo — grid, agent list, panes:
@@ -36,6 +38,8 @@ fastest answer to "do I need to look at this?" — no pane opened, no
 context lost.
 
 ## Panes
+
+![Two panes side by side: chat view and raw view](../screenshots/panes-chat-vs-raw.png)
 
 Open an agent and you get its pane: the conversation, the input box,
 and the agent's controls. You can watch up to three agents at once,

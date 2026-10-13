@@ -28,6 +28,8 @@ earns its turns on questions with real room to disagree.
 
 ## Running one
 
+![A discussion in progress with live commentary](../screenshots/discuss-in-progress.png)
+
 The easiest way: bring both agents up on screen, then ⋮ → Discuss. The
 discussion starts from there — you give the brief to the agent you
 started it from, the agent of origin. That agent carries the exchange
@@ -49,6 +51,8 @@ While it runs:
   time. It's your meeting; the agents just talk faster than most.
 
 ## The consensus
+
+![The consensus list for a project](../screenshots/consensus-list.png)
 
 When they agree, the agreement is written down — that's the product of
 the whole exercise. It lives with the agent of origin: the handshake

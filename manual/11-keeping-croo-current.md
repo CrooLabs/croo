@@ -20,6 +20,8 @@ at the next natural pause — this sitting or the next, not next month.
 
 ## The Updates view
 
+![The Updates view with an available engine update](../screenshots/updates-view.png)
+
 One place in the menu shows what could be newer: Croo itself, and the
 engines your agents run on. When something has an update, you'll see
 it there — what it is, and what applying it involves. No nagging, no
