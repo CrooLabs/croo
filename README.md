@@ -36,8 +36,8 @@ won't load.
 ## Getting started
 
 Croo is in **closed beta**. Ask to join at
-[croolabs.com](https://croolabs.com/site/join/) <!-- JOIN-URL: confirm the
-production path with Adam --> — invitations go out in batches, and yours
+[croolabs.com/waitlist](https://croolabs.com/waitlist) — invitations go
+out in batches, and yours
 brings your personal installation link and a complimentary 90-day term
 that starts at your first activation. From install onward, Nova walks you through everything;
 chapter 1 of the manual is the five-minute read for while you wait.
@@ -52,4 +52,4 @@ those freely.
 
 ---
 
-*Croo Docs · v1.0.1 · 2026-10-13 · [croolabs.com](https://croolabs.com)*
+*Croo Docs · v1.0.2 · 2026-10-13 · [croolabs.com](https://croolabs.com)*
