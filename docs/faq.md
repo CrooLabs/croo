@@ -1,4 +1,4 @@
-# Croo FAQ  (DRAFT 3, 2026-10-13)
+# Croo FAQ  (DRAFT 3.1, 2026-10-13)
 
 *Croo Docs · 2026-10-13*
 
@@ -10,8 +10,7 @@
 > install.md's hold: it describes the gated closed-beta journey and must not
 > publish before that build ships. Three operator calls pending: the
 > cost/beta wording (README's open call), whether the day-90 answer may name
-> the Free fallback publicly, and the telemetry answer's exact wording. One
-> Sally check: the Windows/Ubuntu line (dedicated Ubuntu vs WSL2).
+> the Free fallback publicly, and the telemetry answer's exact wording.
 
 ## The basics
 
@@ -88,9 +87,9 @@ sleeps. What matters more: plenty of disk for your projects, and a reliable
 connection.
 
 **I'm on Windows.**
-Croo runs on Ubuntu, so a Windows 11 PC running Ubuntu works — Nova handles
-the install the same way. [DRAFT: Sally to confirm whether a dedicated
-Ubuntu install is required or Ubuntu under WSL2 counts.]
+Croo runs on Ubuntu, so a Windows 11 PC works either way: Ubuntu under
+WSL2, or a dedicated Ubuntu install. Nova handles the install the same
+way on both.
 
 **Anything to set on the machine itself?**
 Only that it doesn't sleep. Ask Nova at install — "make sure this machine
