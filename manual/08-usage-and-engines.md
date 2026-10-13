@@ -1,6 +1,6 @@
 # 8 · Usage and engines
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: you're managing two kinds of fuel — each
 agent's conversation, and each engine's allowance — and both are one
@@ -20,9 +20,6 @@ plan's clock; the rings just tell you where you stand.
 
 One habit covers both: the glance you already do each time you sit
 down (chapter 2).
-
-[screenshot: the usage column — agent rings at varying fill levels,
-and the per-engine session/weekly gauges below them]
 
 ## Compacting
 

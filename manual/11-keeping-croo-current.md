@@ -1,6 +1,6 @@
 # 11 · Keeping Croo current
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: nothing updates itself.** Croo tells you when
 something has an update, you prepare it from the workspace, and
@@ -24,9 +24,6 @@ One place in the menu shows what could be newer: Croo itself, and the
 engines your agents run on. When something has an update, you'll see
 it there — what it is, and what applying it involves. No nagging, no
 countdown, no silent installs.
-
-[screenshot: the Updates view — the engine rows with one showing an
-available update, and the prepare/confirm controls]
 
 ## Updating an engine
 

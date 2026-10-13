@@ -1,6 +1,6 @@
 # 2 · The workspace
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: you can see the state of your whole crew
 without opening anything.** The workspace is built so a glance answers
@@ -28,10 +28,6 @@ Croo — grid, agent list, panes:
 You can sort the agent list by state, so the agents that need you rise
 to the top.
 
-[screenshot: the fleet grid with five or six agents in visibly mixed
-states — at least one working, one waiting, one resting — so the
-different tile states can be told apart at a glance]
-
 ## Read the room
 
 Hover over an agent and you get a one-line summary of what it's doing
@@ -56,9 +52,6 @@ who needs your attention, without switching away from what you're doing.
 How much raw terminal you see is up to you: at full tidy, every agent
 reads as the same clean chat whatever its engine, and the raw view is
 always one step away.
-
-[screenshot: two agent panes side by side — one in clean chat view,
-one showing the rawer view, to make the tidy-vs-raw choice visible]
 
 ## Each time you sit down
 

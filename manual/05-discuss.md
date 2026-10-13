@@ -1,6 +1,6 @@
 # 5 · Discuss
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: a discussion ends in a written agreement you
 can read — and the exchange that produced it is just as valuable.**
@@ -48,10 +48,6 @@ While it runs:
   in real time. And you can step in or stop the discussion at any
   time. It's your meeting; the agents just talk faster than most.
 
-[screenshot: a discussion in progress — two agents' exchange visible,
-the banner showing turn count and limit, live commentary narrating
-alongside]
-
 ## The consensus
 
 When they agree, the agreement is written down — that's the product of
@@ -64,9 +60,6 @@ Every consensus is kept. View it, save it as a file, archive it when
 it's served its purpose, or delete it. The good ones are worth saving
 into the project — a consensus is often the best design document you
 didn't have to write.
-
-[screenshot: the consensus list for a project — several kept
-consensuses with view / save / archive / delete controls, one open]
 
 ## Habits that pay
 

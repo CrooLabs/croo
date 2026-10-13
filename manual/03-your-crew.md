@@ -1,6 +1,6 @@
 # 3 · Your crew
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: hiring is a sentence, and nothing you build in
 an agent is ever thrown away by accident.** Taking leave preserves the
@@ -48,10 +48,6 @@ The identity file repays attention:
   already learned. Ask Nova: "Nova, add to Jack's identity that changes
   should stay small enough to review in one sitting."
 
-[screenshot: an agent's identity file open from the ⋮ menu — a short,
-readable profile with name, engine, role and a few working
-instructions, ideally Jack's from the Software playbook]
-
 ## Take leave — and come back
 
 **Take leave**, on the agent's ⋮ menu, stops an agent without losing
@@ -96,9 +92,6 @@ identity, no conversation. **Start fresh** does exactly that. The
 written identity is what makes it safe: everything you taught the agent
 deliberately is in the file; only the accumulated conversation is
 cleared.
-
-[screenshot: an agent's ⋮ menu open, showing Take leave, Start fresh
-and Fire among the controls]
 
 ## The shape of a healthy crew
 

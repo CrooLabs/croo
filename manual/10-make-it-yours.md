@@ -1,6 +1,6 @@
 # 10 · Make it yours
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: the workspace adapts to you, not the other
 way round.** None of this chapter is required — it's the set of dials
@@ -19,9 +19,6 @@ send to a pane, flip layouts, open the work map. Behind them sits a
 full key library in the menu — browse it, and pin up to 14 keystrokes
 or short texts to the bar at the bottom of the screen. The bar is
 yours: the keys you actually use, one row, always there.
-
-[screenshot: the key library open from the menu, with a few keys
-pinned to the footer bar below]
 
 ## Cues
 

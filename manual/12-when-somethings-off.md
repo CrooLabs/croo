@@ -1,6 +1,6 @@
 # 12 · When something's off
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: your first move is always the same — describe
 what you see to Nova, in plain words.** Not the technical cause, not a

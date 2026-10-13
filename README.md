@@ -5,10 +5,6 @@ on your own machine — each with its own name, job and memory of
 yesterday — and gives you one workspace to brief them, watch them work,
 and decide what goes ahead.
 
-[screenshot: the workspace in full — fleet grid on the left, two agent
-panes side by side, one agent working and one waiting, usage rings
-visible]
-
 Agents run on the engines you already have — Claude, Codex, AGY and
 Grok, side by side — and their replies all read the same way, in one
 clean chat. They discuss plans with each other and land on a written
@@ -56,4 +52,4 @@ those freely.
 
 ---
 
-*Croo Docs · v1.0 · 2026-10-13 · [croolabs.com](https://croolabs.com)*
+*Croo Docs · v1.0.1 · 2026-10-13 · [croolabs.com](https://croolabs.com)*

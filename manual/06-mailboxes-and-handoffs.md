@@ -1,6 +1,6 @@
 # 6 · Mailboxes and handoffs
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: in Croo, work is passed, not shared — and
 every pass leaves a record you can open.** No shared scratchpad where
@@ -31,10 +31,6 @@ conversation — it's an item you can take and use.
 This is also your morning habit from chapter 2: the mailbox answers
 "what moved while I was away?" — what landed for you, and what the
 crew passed to each other overnight.
-
-[screenshot: an agent's mailbox open — inbox and outbox visible, a few
-items including a file handoff from another agent, with preview /
-download / archive controls]
 
 ## Why passed, not shared
 

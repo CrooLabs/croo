@@ -22,10 +22,6 @@ Tell Nova, in your own words:
 > "Nova, create a project called Shop Site at ~/code/shop-site and add two
 > agents: Jack on Codex as lead developer, and Elsa on Claude as reviewer."
 
-[screenshot: the workspace just after setup — fleet grid showing Nova,
-Jack and Elsa as tiles, Jack and Elsa resting, project "Shop Site"
-visible as the active project]
-
 Croo scaffolds each agent's identity file; Nova fills it in with you. Here
 is a working pair to start from — hand them to Nova as they are, or make
 them yours:
@@ -75,10 +71,6 @@ an afternoon — a real feature, small enough to judge.
    lesson goes back into the brief or an identity file, so the next loop
    starts smarter.
 
-[screenshot: a Discuss in progress between Jack and Elsa — the banner
-with turn count and limit visible, live commentary narrating, consensus
-not yet reached]
-
 ## Adding a third: the UI agent
 
 When the interface becomes real work, hire for it — and onboard the new
@@ -112,8 +104,6 @@ Three agents is a real operation. Past that, you'll know what you need.
   quick answers, and the "tests pass" message all reach your phone — and
   your word reaches the crew.
 
-[screenshot: a phone showing the Telegram chat bound to Jack — a status
-question from the operator, Jack's short reply, and a one-tap answer row]
 - **Friday.** Retire the specialist whose piece shipped — or put the UI
   crew on leave until the next design round; they come back with memory
   intact. Skim the week's consensuses and mailbox handoffs; anything

@@ -1,6 +1,6 @@
 # 1 · The lay of the land
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: in Croo, an agent is someone, not something.**
 It has a name, a job, and a memory of yesterday. Everything else in this
@@ -42,11 +42,6 @@ chores — adding agents, creating projects, troubleshooting, setting
 things up. Most of what this manual describes, you can simply ask Nova
 to do. The manual exists so you know what's possible and what's
 happening; Nova exists so you rarely have to do it by hand.
-
-[screenshot: the workspace at a glance — a small crew across one
-project: Nova plus three named agents in the fleet grid, one agent's
-chat open in a pane, so the reader sees name, state and conversation
-in one image]
 
 ## How a piece of work moves
 

@@ -1,6 +1,6 @@
 # The Croo Operator's Manual — table of contents
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 Style note: each chapter is 2-4 pages, readable on its own, written to be
 linked into — by Nova, by the FAQ, by support answers. Every chapter opens

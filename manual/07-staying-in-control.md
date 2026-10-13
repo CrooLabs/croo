@@ -1,6 +1,6 @@
 # 7 · Staying in control
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: nothing goes ahead without your word — and
 Croo's job is to make giving that word cheap, not to stop asking.**
@@ -43,9 +43,6 @@ stop.
 To actually halt an agent, you act on the agent: tell it to stop in
 chat, redirect it, or put it on leave from its ⋮ menu (chapter 3).
 
-[screenshot: the header with the red stop-all button visible next to
-the Croo logo, at least one agent showing Power-Through active]
-
 ## Alerts
 
 Agents and tools can raise alerts at four levels of urgency. On your
@@ -53,9 +50,6 @@ desk, an alert is spoken aloud or shown as a pop-up — your standing
 choice — and one button mutes the lot when you need quiet. (When
 you're away from the desk, alerts can reach your phone instead:
 chapter 9.)
-
-[screenshot: an alert pop-up on the workspace, with the mute control
-visible in the header]
 
 ## The control ladder
 

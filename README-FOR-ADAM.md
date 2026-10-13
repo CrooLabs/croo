@@ -45,6 +45,11 @@ Nothing in this repository is product source, and nothing ever will be.
 - `docs/faq.md` carries three bracketed `[DRAFT: …]` markers awaiting the
   operator's calls (cost wording, day-90 answer, telemetry wording).
 - `README.md` has one HTML comment marking the join URL to confirm.
+- **Screenshots:** no page carries a `[screenshot: …]` marker any more
+  (manual v1.0.1). The capture list — filename, page, section, what each
+  shot shows — is `screenshots/README.md`. Return IMAGES only, named
+  exactly to that list, via #croo-docs-source; never edited chapter files.
+  We place the image lines; the PDF keeps its own slots.
 - `playbooks/software.md` is draft 3, not yet read by the operator.
 - `LICENSE.md` is a draft pending legal review.
 - `playground/` has its README and licence; the game folders and the

@@ -1,6 +1,6 @@
 # 4 · Talking to agents
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: the quality of what you get back is set by the
 brief you give.** Croo makes the giving easy — text, files, images,
@@ -36,10 +36,6 @@ keeps saying yes cheap. And when a stretch of work is nothing but
 routine yeses, Power-Through can press them for you for a window you
 choose — many one-clicks, handled (chapter 7).
 
-[screenshot: an agent pane where the agent has offered a numbered
-menu, with the choices rendered as pressable buttons under the
-conversation]
-
 ## Macros — the prompts you reuse
 
 Anything you find yourself typing twice, save as a macro. Scope it to a
@@ -58,9 +54,6 @@ pinned drafts — use it as that agent's to-do if you like: the queue of
 work you'll hand over as it frees up. And your last ten inputs stay on
 recall, so re-sending or reworking a recent instruction is a pick, not
 a retype.
-
-[screenshot: the input pane with a pinned macro visible and a pinned
-draft waiting on a busy agent]
 
 ## Tidy my draft
 

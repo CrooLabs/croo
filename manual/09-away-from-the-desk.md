@@ -1,6 +1,6 @@
 # 9 · Croo away from the desk
 
-*Croo Operator's Manual · v1.0 · 2026-10-12*
+*Croo Operator's Manual · v1.0.1 · 2026-10-13*
 
 **The one thing to know: the crew keeps working when you leave — and
 your word can still reach them.** Croo follows you two independent
@@ -28,9 +28,6 @@ one-tap answers. Open it in the phone's browser and add it to your
 home screen — it behaves like an app from then on. It's deliberately
 simpler than the desktop: on the phone you're checking in and giving
 your word, not conducting the whole operation.
-
-[screenshot: the phone layout — agent picker visible, a conversation
-open, the one-tap answer row showing]
 
 Three things the web client does on the phone:
 
@@ -66,10 +63,6 @@ And the part that changes your day: when you're away, your agents and
 your cues reach you here. The question that would have sat in
 **Waiting for you** until evening gets answered from the lunch queue,
 and the crew keeps moving.
-
-[screenshot: a Telegram chat bound to an agent — a status reply, a
-question from the agent with tappable answer choices, and a voice
-message in the thread]
 
 ## What reaches you, and how to quiet it
 
