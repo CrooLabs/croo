@@ -1,6 +1,6 @@
-# Croo FAQ  (DRAFT 3.2, 2026-10-13)
+# Croo FAQ  (DRAFT 5, 2026-10-14)
 
-*Croo Docs · 2026-10-13*
+*Croo Docs · 2026-10-14*
 
 > DRAFT NOTE (never ships): base = the five questions live on the website's
 > How page (CROO F.A.Q., captured 2026-10-13), kept in their site wording
@@ -8,9 +8,18 @@
 > README, cli.md, support.md, reach.md, install.md) — short answer here, the
 > owning doc holds the truth. The "Installing and activating" section shares
 > install.md's hold: it describes the gated closed-beta journey and must not
-> publish before that build ships. Three operator calls pending: the
-> cost/beta wording (README's open call), whether the day-90 answer may name
-> the Free fallback publicly, and the telemetry answer's exact wording.
+> publish before that build ships. Draft 5 consolidates the site's Pricing
+> FAQ (Free page, captured 2026-10-14) as the "Pricing and plans" section,
+> so one list feeds every page; "pre-launch" aligned to "closed beta" per
+> the operator. The day-90 Free-fallback call is RESOLVED (the site's Free
+> page already says it; its wording adopted). Still pending: the cost/beta
+> wording (README's open call) and the telemetry answer's exact wording.
+
+<!-- filters: each section is one filter — basics, getting-in, where,
+install, crew, privacy, away, updates, troubleshooting, pricing. A question
+belongs to its section's filter unless a comment under its heading says
+otherwise, e.g. <!- - filters: pricing, getting-in - -> (without the inner
+spaces). Unknown slugs are typos — fail loudly, don't make empty filters. -->
 
 ## The basics
 
@@ -55,14 +64,35 @@ Croo spends nothing on its own. [DRAFT: wording tracks the README's open
 ## Getting in
 
 **How do I join?**
-The beta is invitation-only. Ask to join on the website; approval arrives by
-email with your personal installation link.
+The beta is invitation-only. Ask to join at croolabs.com/waitlist; if
+you're approved, you'll hear from us by email — and that approved email
+is what later activates your installation.
 
-**What happens when my 90 days end?**
+## Pricing and plans
+
+**What's included during the closed beta?**
+Everything. See the [full list of features](https://croolabs.com/site/what/).
+
+**When will paid plans be available?**
+At full launch. Croo Pro is the first paid plan. Plans and prices aren't
+set yet — we're building them with you in mind, and we'll ask for your
+feedback before we settle anything. Whatever lands, it lands on this page
+first.
+
+**What happens after my 90 days?**
+<!-- filters: pricing, getting-in -->
 Your term is 90 days from first activation, not from approval or install.
-[DRAFT: agreed behaviour is that an admitted, expired user falls back to the
-Free tier rather than losing access — PENDING the operator's call on saying
-that publicly before launch pricing exists.]
+Then your access reverts to Croo Free, which is yours for good: Nova plus
+any two of your agents active at a time. The rest of your crew doesn't
+disappear — they're on leave, identities and memory intact, and you choose
+which two are active. A full licence brings them all back at once.
+
+**What if I'm buying for a whole company?**
+[Tell us about your team](https://croolabs.com/site/demo/) and we'll talk
+it through.
+
+**Who pays for the AI models?**
+You do, through your own Claude, Codex, AGY and Grok subscriptions.
 
 ## Where Croo should live
 
@@ -98,26 +128,21 @@ stays awake" — and she'll check the energy settings with you.
 ## Installing and activating
 
 **How do I install Croo?**
-Tell a coding agent you already trust: "Install Croo from <your installation
-link>." The agent fetches, verifies, and sets up the right release — you
-never type a version number or checksum. The install page covers the whole
-journey, including the few moments that are yours.
+Tell a coding agent you already trust: "Install Croo from the official
+download." The agent fetches, verifies, and sets up the right release —
+you never type a version number or checksum. The install page covers the
+whole journey, including the few moments that are yours.
 
-**Can I reuse my installation link?**
-Yes — a reinstall or a second machine uses the same link, for as long as
-your invitation stands. It's permission to download, nothing more; don't
-post it anywhere public.
-
-**Is the link my licence?**
-No. Installing and activating are separate: the link gets Croo onto the
-machine, and a fresh install opens in Activation required. You activate
-inside Croo with a code sent to your approved email — that code, not the
-link, is what ties the installation to you. Your 90 days start at first
+**Is downloading Croo the same as having a licence?**
+No. Anyone can hold the installer; it proves nothing. A fresh install
+opens in Activation required — no agents yet, not even Nova — and you
+activate inside Croo with a code sent to your approved email. That code
+is what ties the installation to you. Your 90 days start at first
 successful activation, and reinstalling never resets them.
 
 **Can I move Croo to another machine?**
-Yes. Your installation link installs there too, and activating with your
-approved email carries your licence over — your original dates are
+Yes. Install from the same official download and activate with your
+approved email — your licence carries over, your original dates are
 preserved, nothing resets. Nova can write a handoff of your crew's state
 before you move.
 
