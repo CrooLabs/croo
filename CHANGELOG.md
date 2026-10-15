@@ -2,6 +2,19 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.4 - 15 October 2026
+
+<!-- release_id: croo-1004-R1 -->
+
+- **Help & Tips:** access keyboard shortcuts and illustrated tips from the Croo logo, with optional automatic tips during quiet moments.
+- **Live Workmap updates:** changes appear automatically while the map is open, without interrupting your edits.
+- **Cleaner conversations:** reduced leftover input echoes and idle footer clutter in Claude's Gamma view.
+- **Codex conveniences:** Plugins added to More, plus F3 conversation search in the main Echo view.
+- **Quick agent popups:** Cmd-click a bottom agent tab to open its popup.
+- **Optional sidebar summaries:** local-AI summaries help you see what agents are doing at a glance.
+- **Clearer system monitoring:** simplified Spark, Rings and Bars displays, with detailed information available on hover.
+- **More reliable Grok approvals:** approval choices remain usable when another message is queued.
+
 ## v1.0.03 - 15 October 2026
 
 <!-- release_id: croo-1003-R1 -->
