@@ -2,6 +2,16 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.5 - 17 October 2026
+
+<!-- release_id: croo-1005-R1 -->
+
+- **Sticky notes:** sticky-note windows open reliably.
+- **Engine changes:** startup settings stay consistent with the selected engine.
+- **Workmap:** title previews are easier to read.
+- **AGY messages:** multiline messages remain together in the conversation.
+- **Claude model changes:** no extra confirmation, and idle panes are recognized correctly even when the terminal has extra blank space.
+
 ## v1.0.4 - 15 October 2026
 
 <!-- release_id: croo-1004-R1 -->
