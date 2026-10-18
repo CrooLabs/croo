@@ -2,6 +2,17 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.6 - 18 October 2026
+
+<!-- release_id: croo-1006-R1 -->
+
+- Paste screenshots directly into Notes and view them in pop-out sticky notes.
+- Respond to Claude, Codex and AGY folder-trust prompts directly in Croo.
+- Retry interrupted Nova setup without repeating the installation.
+- Improved Power-Through handling of large Claude approval prompts.
+- Consistent alignment in the Fields menu.
+- Improved Tips loading.
+
 ## v1.0.5 - 17 October 2026
 
 <!-- release_id: croo-1005-R1 -->
