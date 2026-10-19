@@ -2,6 +2,15 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.8 - 19 October 2026
+
+<!-- release_id: croo-1008-R1 -->
+
+- Cleaner Grok replies: task lists, queued messages and running-tool status no longer appear as part of the agent's reply.
+- Follow your update: open your custodian's pane directly from Updates while the update continues.
+- Fleet at a glance: a percentage ring and compact glyph counts show active agents, waiting agents and Power-Through, with labels on hover.
+- Steadier updates: older installations no longer trip over a leftover Python environment. Early update failures now record a clearer reason.
+
 ## v1.0.7 - 19 October 2026
 
 <!-- release_id: croo-1007-R1 -->
