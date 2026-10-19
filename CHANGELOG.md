@@ -2,6 +2,20 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.7 - 19 October 2026
+
+<!-- release_id: croo-1007-R1 -->
+
+- Reorganised menus and more consistent action icons.
+- New Minima fleet display with grouped activity and Power-Through status.
+- More consistent Model and Effort controls, plus Gemini 4 Argon choices where available.
+- Browse Tips by topic, search or device, and enlarge demonstrations full screen.
+- Improved version reporting and browser cache handling.
+- Keyboard shortcut labels matched to your browser’s platform.
+- New-browser defaults: Usage 2×2, Monitor Rings and a seven-minute Power-Through window; existing preferences stay unchanged.
+- Open project-relative file and folder references directly from agent replies.
+- Improved Antigravity conversation identification and approval handling.
+
 ## v1.0.6 - 18 October 2026
 
 <!-- release_id: croo-1006-R1 -->
