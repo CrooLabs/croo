@@ -2,6 +2,28 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.9 - 21 October 2026
+
+<!-- release_id: croo-1009-R1 -->
+
+- Code viewer: syntax highlighting, line numbers and a searchable format selector.
+- Markdown preview: rendered documents, a source view and formatting tools when editing.
+- Resizable split panes: drag dividers with mouse or touch; headers wrap neatly as panes narrow.
+- Three Work Map views: Stream Bands, Root Territories and Ticket Desk, with individual-stream focus.
+- Argon usage: a dedicated weekly allowance indicator and reset countdown, where available.
+- Ticket Desk gives descriptions the full width, wraps details below and highlights completed tickets.
+- File search supports patterns such as \*.py and \*.md, including previously unlisted file types.
+- Live Commentary supports whole-commentary copying and Markdown download, with clear copy feedback.
+- Work Map deletion and discussion Stop use consistent, two-click confirmation in place.
+- Staleness dots continue through Orient to the document needing attention.
+- Detached sidebar windows open at a size suited to their contents.
+- File hovers are more readable, duplicate tooltips are reduced, and long notifications wrap instead of being cut off.
+- Favourite-agent cycling now keeps the popup's conversation matched to its agent name.
+- Claude compaction notices and interface status rows no longer appear as replies in Gamma.
+- Grok model and effort switching correctly recognises always-approve mode.
+- AGY updates now use Croo's managed update flow with clearer installed-version feedback.
+- Large files explain why they are displayed as plain text.
+
 ## v1.0.8 - 19 October 2026
 
 <!-- release_id: croo-1008-R1 -->
