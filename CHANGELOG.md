@@ -2,6 +2,15 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.10 - 22 October 2026
+
+<!-- release_id: croo-1010-R1 -->
+
+- Work Maps remember your selected stream per project.
+- Clearer engine-update progress and reasons for waiting agents.
+- Recover agents after interrupted updates without reinstalling the engine.
+- An amber Power-Through ring and brief message show when a prompt needs you.
+
 ## v1.0.9 - 21 October 2026
 
 <!-- release_id: croo-1009-R1 -->
