@@ -2,6 +2,18 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.11 - 25 October 2026
+
+<!-- release_id: croo-1011-R1 -->
+
+- OpenCode (Preview): connected providers and local models, with searchable, sortable model choices and effort controls.
+- More reliable Claude and Codex model/effort switching.
+- Fixes for Codex message delivery, approvals, compaction and conversation previews.
+- Improved Power-Through handling of long approval prompts.
+- Clearer engine-update progress and improved OpenCode update recovery.
+- Clearer OpenCode notices and pending-draft guidance.
+- New Chocolate theme and theme-matched Reading the Room visuals.
+
 ## v1.0.10 - 22 October 2026
 
 <!-- release_id: croo-1010-R1 -->
