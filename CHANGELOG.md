@@ -2,6 +2,18 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.12 - 26 October 2026
+
+<!-- release_id: croo-1012-R1 -->
+
+- Draft in the editor without creating a file, or expand a message and return it unsent.
+- Local AI text tools for spelling and grammar, translation, writing styles and agent prompts.
+- A more flexible editor with font controls, optional line numbers, downloads and pop-out windows.
+- Steadier usage meters that stay in place when readings are temporarily unavailable.
+- Phone controls to hide or show voice input and spoken replies.
+- Consistent Croo blue feedback, theme-coloured screensavers, a refreshed Chocolate theme and new Vanilla and Strawberry themes.
+- Clearer Grok question cards and OpenCode update details, plus a better-placed rail pop-out control.
+
 ## v1.0.11 - 25 October 2026
 
 <!-- release_id: croo-1011-R1 -->
