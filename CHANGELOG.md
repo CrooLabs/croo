@@ -2,6 +2,18 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.13 - 29 October 2026
+
+<!-- release_id: croo-1013-R4 -->
+
+- OpenCode-led installation, guided Nova setup and saved API-key reuse for workers.
+- Compatible OpenCode 2.x updates without recurring minor-version blocks.
+- More reliable engine-version reporting, AGY conversation tracking and Codex GPT-6.1 Terra selection.
+- Better Codex and AGY Power-Through handling, clearer Gamma approval choices and safer message delivery.
+- Safer update recovery and portable support guides.
+- Theme-matched notification dissolve effects.
+- OpenCode remains Preview.
+
 ## v1.0.12 - 26 October 2026
 
 <!-- release_id: croo-1012-R1 -->
