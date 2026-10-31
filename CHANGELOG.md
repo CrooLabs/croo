@@ -2,6 +2,18 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.14 - 31 October 2026
+
+<!-- release_id: croo-1014-R1 -->
+
+- More reliable Gamma updates, clearer stale-state handling and a steadier reading position.
+- Work Map Bullseye view, stable node labels, a bounded stream picker and automatic parent progress.
+- Safer Work Map saves, clearer storage errors and more reliable Notes pinning.
+- Clearer editor handoff for drafts, preserved file-reading position and configurable alert placement.
+- Narrow-pane controls and menus that remain reachable.
+- Better OpenCode readiness guidance and visible retry notices; OpenCode remains Preview.
+- Improved Codex compatibility and safer Grok sends around drafts and usage-limit notices, plus Grok background tasks.
+
 ## v1.0.13 - 29 October 2026
 
 <!-- release_id: croo-1013-R4 -->
