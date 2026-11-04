@@ -5,7 +5,7 @@ it must have, the page and section it belongs in, and what it should show.
 When a file with that exact name lands in this folder, the image line goes
 into the page at that spot.
 
-Images are returned via Slack #croo-docs-source, named exactly as below.
+Images are returned by committing them straight to this folder, named exactly as below (or sent by WhatsApp to be placed here).
 Shots taken of the real customer build are preferred for the manual; staged
 demo images (the website's feature pictures) suit the README and overviews —
 say which they are when sending.
