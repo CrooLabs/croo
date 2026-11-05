@@ -2,6 +2,19 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.15 - 5 November 2026
+
+<!-- release_id: croo-1015-R1 -->
+
+- Choose each agent's voice: Microsoft's online voices or local Phonon voices on supported Macs, with testing and setup help.
+- Hear reply reads the latest reply more reliably, and reads ordinary text as written.
+- A clearer, more intuitive mobile interface, with a streamlined message bar and quarter-circle actions for attachments and drafts.
+- Share your phone's location with the agent you are messaging: off by default, and sent with your messages only while you turn it on.
+- Usage meters you can set to Detailed, Compact or Off, Codex credit balances, and a tap on a meter that says why its reading is old.
+- Hack, a monospace font included with Croo, in Font & zoom and in the editor.
+- OpenCode's own questions appear as cards you can answer in the chat view; OpenCode remains Preview.
+- Fixes: a quoted croo send command no longer shows as a send, bright terminal colours no longer paint as bars in the chat view, and Help names the press-and-hold that opens an agent in the popup.
+
 ## v1.0.14 - 31 October 2026
 
 <!-- release_id: croo-1014-R1 -->
