@@ -2,6 +2,21 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.0.16 - 9 November 2026
+
+<!-- release_id: croo-1016-R1 -->
+
+- Agent Info shows which workspace and conversation an agent is on, its engine build, model and effort, recent activity, and the names of its configured Skills and MCP servers.
+- Codex speed per agent: a Speed choice in the agent's menu when the model offers a Fast tier.
+- Claude's model menu reaches the models listed under More models.
+- A simpler phone agent menu with Mailboxes, Model and Effort, the agent's voice, Macros and Full interface; other settings stay in the full interface.
+- Pinned drafts and saved prompts menus fit their pane, with headings that separate drafts from recent inputs.
+- Dictation refuses an empty or incomplete recording and says whether recording, connection or the server failed.
+- On an iPhone, Hear reply, spoken alerts and send sounds play alongside the microphone more reliably.
+- Files sent between agents keep earlier files during quick sends, and Croo shows whether each file was stored and whether its notice went out. An exact agent name now takes precedence over a display name.
+- Clearer custodian guidance, and a guide for updating an existing custodian's instructions.
+- Fixes: Codex 0.167's footer and AGY 1.5.3's waiting state are read correctly again, Claude's permission questions show as questions in the chat view, the macro editor keeps Save and Cancel in view, and Notes has more room to read.
+
 ## v1.0.15 - 5 November 2026
 
 <!-- release_id: croo-1015-R1 -->
