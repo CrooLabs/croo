@@ -2,6 +2,22 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.1.0 - 12 November 2026
+
+<!-- release_id: croo-1100-R1 -->
+
+- Updated Claude model picker, including Fable 5.2.
+- Clearer OpenCode restart diagnostics and safer AGY approvals.
+- Cleaner Gamma replies without built-in engine tips.
+- Better Telegram approvals, question buttons, progress and conversation handoff.
+- Case-insensitive Telegram agent names.
+- Work Map filtering, archiving and restoration.
+- New Rose Quartz and Chantilly themes.
+- More reliable usage readings.
+- Fixed project settings layout, credits labels and duplicate delivery chips.
+
+Experimental Voice is not included.
+
 ## v1.0.16 - 9 November 2026
 
 <!-- release_id: croo-1016-R1 -->
