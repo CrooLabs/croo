@@ -2,6 +2,16 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.1.22 - 15 November 2026
+
+<!-- release_id: croo-1122-R1 -->
+
+- Faster, fresher Gamma views and improved Grok message display.
+- Clear question and approval cards with soft amber highlighting.
+- Step-by-step handling of supported multi-question prompts.
+- In-app tips, keyboard guidance and easier-to-browse Help.
+- Images in notes, clearer menus and improved iPad Help layout.
+
 ## v1.1.0 - 12 November 2026
 
 <!-- release_id: croo-1100-R1 -->
