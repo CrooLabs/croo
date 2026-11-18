@@ -2,6 +2,16 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.1.23 - 18 November 2026
+
+<!-- release_id: croo-1123-R1 -->
+
+- Search-first Notes, Tips search, and better-timed “Show me” steps.
+- Slimmer Minima signals and automatic pane sizing.
+- Question and approval cards always available in Chat.
+- Improved OpenCode, Codex and Antigravity compatibility.
+- Gemini 4 Hydrogen in Antigravity’s menus where available, and Codex updates for Homebrew installations.
+
 ## v1.1.22 - 15 November 2026
 
 <!-- release_id: croo-1122-R1 -->
