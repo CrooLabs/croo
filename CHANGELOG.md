@@ -2,6 +2,16 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.1.30 - 22 November 2026
+
+<!-- release_id: croo-1130-R1 -->
+
+- **New model choices:** GPT-6.2 Sol and Astra for Codex, Gemini 4 Neon for AGY, and AGY’s Orchestrator workflow with its observed planner shown.
+- **Clearer engine decisions:** improved Grok command approvals, Codex question sets reviewed and sent together, and model/effort switching through Claude’s current pickers.
+- **Safer changes while agents work:** Codex model, effort or speed changes are blocked during an active turn. OpenCode requests remain in progress while their background work continues.
+- **Sidebar and layout:** per-agent Minima hover details, one-press split direction, a single Engine glyph row with optional Invaders, and movable, resizable Notes, Local AI and agent windows.
+- **Setup and tips:** a Review macro pinned beside Send on new installs, clearer Local AI and Hear reply setup guidance, practical in-app tips, and Authoring Guides for the Playground and cues.
+
 ## v1.1.23 - 18 November 2026
 
 <!-- release_id: croo-1123-R1 -->
