@@ -2,6 +2,12 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.1.31 - 23 November 2026
+
+<!-- release_id: croo-1131-R1 -->
+
+- The Files sidebar now loads on demand. Opening it loads a bounded list, and Search can still find files beyond that list.
+
 ## v1.1.30 - 22 November 2026
 
 <!-- release_id: croo-1130-R1 -->
