@@ -38,7 +38,7 @@ won't load.
 ## Getting started
 
 Croo is in **closed beta**. Ask to join at
-[croolabs.com/waitlist](https://croolabs.com/waitlist/?r=gh-croolabs-gh&utm_source=github&utm_medium=referral&utm_campaign=croolabs-gh) — invitations go
+[croolabs.com/join](https://croolabs.com/join/?r=gh-croolabs-gh&utm_source=github&utm_medium=referral&utm_campaign=croolabs-gh) — invitations go
 out in batches, and yours
 brings your personal installation link and a complimentary 90-day term
 that starts at your first activation. From install onward, Nova walks you through everything;
