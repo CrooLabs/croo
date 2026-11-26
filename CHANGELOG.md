@@ -2,6 +2,16 @@
 
 Release notes for activated Croo releases, newest first.
 
+## v1.1.35 - 26 November 2026
+
+<!-- release_id: croo-1135-R1 -->
+
+- Keep multiple assignment notes per agent. Hover over any sidebar agent to read them without switching panes. Titles show their full first line when it fits, and deleted markers can be undone.
+- In AGY, choose Gemini 4 Carbon at Low, Medium or High, or use Orchestrator (Carbon). Use Send Immediately for an eligible queued message.
+- OpenCode's model picker keeps your saved selection while the catalogue loads and finds models even when their provider row is missing.
+- Croo recognizes Claude's collapsed file-creation approval prompts. Gamma uses message history to show the full sent message instead of a matching short prefix.
+- In Updates, a delayed response from an older request no longer replaces the status of the current request.
+
 ## v1.1.31 - 23 November 2026
 
 <!-- release_id: croo-1131-R1 -->
